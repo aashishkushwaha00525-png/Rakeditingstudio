@@ -24,17 +24,19 @@ GitHub Pages serves static files. It cannot securely manage passwords, shared cu
    select id from auth.users where email = 'OWNER_EMAIL_HERE'
    on conflict (user_id) do nothing;
    ```
-5. The frontend files `account.js` and `premium-prompts.js` already implement email sign-up/sign-in, password reset on the main site, sign-out, saved prompts, customer order history/enquiry saving, visit recording, and owner-only dashboard calls. Configure `supabase-config.js` with the project's public URL and anon/publishable key. Never use a service-role key in frontend code.
+5. The frontend files `account.js` and `premium-prompts.js` implement email sign-up/sign-in, password reset on the main site, sign-out, saved prompts, customer order history/enquiry saving, visit recording, and owner-only dashboard calls. Configure `supabase-config.js` with the project's public URL and anon/publishable key. Never use a service-role key in frontend code.
+6. Because the initial schema has already been run on the current project, run `supabase/premium-entitlements-migration.sql` in the Supabase SQL Editor before testing premium prompts. This migration changes premium prompt reads from any signed-in user to the studio owner or a user with an active entitlement. It does not process payments or automatically grant access.
 6. Do not commit exclusive prompt text to this public repository. After applying the schema, add only newly created private prompts directly through the Supabase Dashboard Table Editor (`premium_prompts`). Add advanced-tool records to `advanced_tools` before advertising them as members-only. Prompts previously included in public HTML or Git history must be treated as public; moving them to a database later cannot make copies already published in Git history secret.
-7. Anonymous visit recording is wired through `record_site_visit`. It uses a random browser-generated UUID and does not require storing IP addresses. Counts are estimates; one browser/profile may be counted as a separate visitor.
-8. Test with a regular customer account and an owner account. Confirm that customers cannot read other users' saved prompts/orders or access dashboard statistics. Then merge the draft pull request to publish the website changes. Do not merge until configuration and tests are complete.
+8. Anonymous visit recording is wired through `record_site_visit`. It uses a random browser-generated UUID and does not require storing IP addresses. Counts are estimates; one browser/profile may be counted as a separate visitor.
+9. Test with a regular customer account and an owner account. Confirm that customers cannot read other users' saved prompts/orders or access dashboard statistics. Then merge the draft pull request to publish the website changes. Do not merge until configuration and tests are complete.
 
 ## Database tables/functions in this branch
 
 - `profiles`: one record per authenticated account.
 - `studio_admins`: owner/admin allow-list; not writable by normal clients.
 - `saved_prompts`: each user can read/write only their own saved prompts.
-- `premium_prompts`: readable by signed-in users; only owner/admin can manage them.
+- `customer_entitlements`: customer entitlement records; users can read their own record, and only owner/admin can grant or change access.
+- `premium_prompts`: readable only by the owner/admin or a customer with an active, unexpired entitlement; only owner/admin can manage them.
 - `advanced_tools`: readable by signed-in users; only owner/admin can manage them.
 - `customer_orders`: customers can create/read their own orders; only owner/admin can update status.
 - `site_visits`: anonymous daily page-view events; raw rows are owner-only.
