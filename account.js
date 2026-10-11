@@ -135,6 +135,19 @@ el("signOutBtn").addEventListener("click", async () => {
   if (error) message(error.message, true);
 });
 el("refreshDashboardBtn").addEventListener("click", refreshDashboard);
+el("loadAdvancedToolsBtn").addEventListener("click", async () => {
+  const toolsBox = el("memberTools");
+  if (!supabase || !currentUser) { toolsBox.textContent = "Sign in to view member tools."; return; }
+  toolsBox.textContent = "Loading member tools…";
+  const { data, error } = await supabase.from("advanced_tools").select("title,description,url").order("created_at", { ascending: false }).limit(50);
+  if (error) { toolsBox.textContent = "Member tools are not available yet. Check the database setup."; return; }
+  if (!data?.length) { toolsBox.textContent = "No member-only tools have been added yet."; return; }
+  const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  toolsBox.innerHTML = data.map((item) => {
+    const safeUrl = /^https:\/\//i.test(item.url) ? item.url : "";
+    return '<div class="account-panel"><strong>' + escapeHtml(item.title) + '</strong><p>' + escapeHtml(item.description) + '</p>' + (safeUrl ? '<a href="' + escapeHtml(safeUrl) + '" target="_blank" rel="noopener noreferrer">Open tool ↗</a>' : '') + '</div>';
+  }).join("");
+});
 el("loadSavedPromptsBtn").addEventListener("click", async () => {
   if (!supabase || !currentUser) return;
   const { data, error } = await supabase.from("saved_prompts").select("id,title,prompt_text,created_at").order("created_at", { ascending: false }).limit(50);
