@@ -165,7 +165,7 @@ using (auth.uid() = user_id or public.is_studio_admin());
 drop policy if exists "orders_create_own" on public.customer_orders;
 create policy "orders_create_own" on public.customer_orders
 for insert to authenticated
-with check (auth.uid() = user_id);
+with check (auth.uid() = user_id and status = 'received');
 
 drop policy if exists "orders_admin_update" on public.customer_orders;
 create policy "orders_admin_update" on public.customer_orders
