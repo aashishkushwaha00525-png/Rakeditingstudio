@@ -13,6 +13,7 @@ create table if not exists public.customer_entitlements (
 );
 
 alter table public.customer_entitlements enable row level security;
+grant select, insert, update, delete on public.customer_entitlements to authenticated;
 
 drop policy if exists "premium_prompts_login_read" on public.premium_prompts;
 drop policy if exists "premium_prompts_entitled_read" on public.premium_prompts;
