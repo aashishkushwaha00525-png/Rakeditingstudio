@@ -89,13 +89,21 @@ async function init() {
   await recordVisit();
   const { data: { session } } = await supabase.auth.getSession();
   showSession(session?.user || null);
-  supabase.auth.onAuthStateChange(async (event, sessionNow) => {
+  if (session?.user) {
+    const { data: adminFlag } = await supabase.rpc("is_studio_admin");
+    el("ownerDashboard").classList.toggle("hidden", adminFlag !== true);
+  }
+  supabase.auth.onAuthStateChange((event, sessionNow) => {
+    // Keep the auth callback synchronous; do database work after Supabase releases its auth lock.
     showSession(sessionNow?.user || null);
-    if (event === "SIGNED_IN" && sessionNow?.user) await recordLogin(sessionNow.user);
-    if (sessionNow?.user) {
-      const { data: adminFlag } = await supabase.rpc("is_studio_admin");
-      el("ownerDashboard").classList.toggle("hidden", adminFlag !== true);
+    if (event === "SIGNED_IN" && sessionNow?.user) {
+      queueMicrotask(async () => {
+        await recordLogin(sessionNow.user);
+        const { data: adminFlag } = await supabase.rpc("is_studio_admin");
+        el("ownerDashboard").classList.toggle("hidden", adminFlag !== true);
+      });
     }
+    if (event === "SIGNED_OUT") el("ownerDashboard").classList.add("hidden");
   });
 }
 el("signUpForm").addEventListener("submit", async (e) => {
