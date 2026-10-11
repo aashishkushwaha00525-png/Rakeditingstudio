@@ -10,7 +10,26 @@ function render(rows){grid.innerHTML=rows.length?rows.map(p=>'<article class="ca
 grid.querySelectorAll(".copy-premium").forEach((b)=>b.addEventListener("click",async()=>{const t=b.parentElement.querySelector(".prompt").textContent;try{await navigator.clipboard.writeText(t);b.textContent="✓ Copied";}catch(e){setStatus("Copy failed. Prompt select karke manually copy karo.",true);}}));
 grid.querySelectorAll(".save-premium").forEach((b,i)=>b.addEventListener("click",async()=>{const p=rows[i];const {data}=await db.auth.getUser();if(!data.user)return setStatus("Sign in again to save this prompt.",true);const {error}=await db.from("saved_prompts").insert({user_id:data.user.id,title:p.title,prompt_text:p.prompt_text});setStatus(error?error.message:"Prompt saved to your account.",!!error);}));
 }
-async function showUser(user){if(!user){auth.classList.remove("hidden");grid.innerHTML="";return;}auth.classList.add("hidden");setStatus("Signed in as "+(user.email||"customer")+". Premium prompts load from the protected database.");const {data,error}=await db.from("premium_prompts").select("title,description,category,poster_url,duration,prompt_text").order("created_at",{ascending:false});if(error){setStatus("Premium prompts load nahi hue. Database setup check karo.",true);return;}render(data||[]);}
+async function showUser(user){
+ if(!user){auth.classList.remove("hidden");grid.innerHTML="";return;}
+ auth.classList.add("hidden");
+ setStatus("Checking your premium access…");
+ const {data:adminData,error:adminError}=await db.rpc("is_studio_admin");
+ const isAdmin=!adminError && adminData===true;
+ if(!isAdmin){
+  const {data:entitlement,error:entitlementError}=await db.from("customer_entitlements").select("status,expires_at").eq("user_id",user.id).maybeSingle();
+  const active=!!entitlement && entitlement.status==="active" && (!entitlement.expires_at || new Date(entitlement.expires_at).getTime()>Date.now());
+  if(entitlementError || !active){
+   grid.innerHTML="";
+   setStatus("Your account is signed in, but premium access is not active. Access is enabled only after the studio owner grants an entitlement. Payment verification is not connected yet.",true);
+   return;
+  }
+ }
+ setStatus("Signed in as "+(user.email||"customer")+". Premium access is active.");
+ const {data,error}=await db.from("premium_prompts").select("title,description,category,poster_url,duration,prompt_text").order("created_at",{ascending:false});
+ if(error){setStatus("Premium prompts load nahi hue. Database migration/RLS setup check karo.",true);return;}
+ render(data||[]);
+}
 if(!configured){setStatus("Backend setup pending. Supabase config set hone tak login disabled hai.",true);auth.querySelectorAll("input,button").forEach(n=>n.disabled=true);}
 else{db=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);const {data:{session}}=await db.auth.getSession();await showUser(session?.user||null);db.auth.onAuthStateChange((event,s)=>{if(event==="SIGNED_IN")queueMicrotask(()=>showUser(s?.user||null));if(event==="SIGNED_OUT"){showUser(null);setStatus("Sign in to view premium prompts.");}});}
 el("premiumSignup").addEventListener("submit",async e=>{e.preventDefault();if(!db)return;const email=el("premiumEmail").value.trim(),password=el("premiumPassword").value;const {data,error}=await db.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}});setStatus(error?error.message:(data.session?"Account created.":"Account created. Email confirmation may be required."),!!error);if(data.session)await showUser(data.session.user);});
