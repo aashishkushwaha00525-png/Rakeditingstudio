@@ -126,6 +126,7 @@ alter table public.premium_prompts enable row level security;
 alter table public.advanced_tools enable row level security;
 alter table public.customer_orders enable row level security;
 alter table public.customer_entitlements enable row level security;
+grant select, insert, update, delete on public.customer_entitlements to authenticated;
 alter table public.site_visits enable row level security;
 alter table public.login_events enable row level security;
 
