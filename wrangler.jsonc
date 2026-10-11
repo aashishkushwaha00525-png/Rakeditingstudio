@@ -1,0 +1,6 @@
+{
+  "$schema": "https://developers.cloudflare.com/schemas/wrangler.json",
+  "name": "rakgpt-ai",
+  "main": "./cloudflare-worker.js",
+  "compatibility_date": "2026-10-11"
+}
