@@ -1,6 +1,6 @@
 # RAK Editing Studio — customer accounts and visitor dashboard
 
-This branch prepares the database security foundation. It does **not** activate login on the live GitHub Pages site by itself.
+This branch now contains the customer-account UI, Supabase client integration, protected premium-prompts page, and database security foundation. It is still **not live**: `supabase-config.js` contains placeholders, and the Supabase project/schema/owner allow-list must be configured and tested first.
 
 ## Planned behavior
 
@@ -24,10 +24,10 @@ GitHub Pages serves static files. It cannot securely manage passwords, shared cu
    select id from auth.users where email = 'OWNER_EMAIL_HERE'
    on conflict (user_id) do nothing;
    ```
-5. Add the Supabase client to the site and implement sign-up, sign-in, sign-out, password reset, profile, saved prompts, orders, and owner-only dashboard calls.
-6. Move premium prompt content and advanced-tool records out of publicly served HTML into the protected database. Hiding a static HTML section with JavaScript is **not security** because visitors can still inspect public source files.
-7. Add anonymous visit recording through the provided RPC. It uses a random browser-generated UUID and does not require storing IP addresses. Counts are estimates; one browser/profile may be counted as a separate visitor.
-8. Test with a regular customer account and an owner account. Confirm that customers cannot read other users' saved prompts/orders or access dashboard statistics.
+5. The frontend files `account.js` and `premium-prompts.js` already implement email sign-up/sign-in, password reset on the main site, sign-out, saved prompts, customer order history/enquiry saving, visit recording, and owner-only dashboard calls. Configure `supabase-config.js` with the project's public URL and anon/publishable key. Never use a service-role key in frontend code.
+6. Run `supabase/seed-premium-prompts.sql` after `supabase/schema.sql`. The seven prompt texts formerly embedded in `prompts.html` have been moved into the protected `premium_prompts` table and the page now loads them only after authentication. Advanced-tool records should also be entered into `advanced_tools` before advertising them as members-only.
+7. Anonymous visit recording is wired through `record_site_visit`. It uses a random browser-generated UUID and does not require storing IP addresses. Counts are estimates; one browser/profile may be counted as a separate visitor.
+8. Test with a regular customer account and an owner account. Confirm that customers cannot read other users' saved prompts/orders or access dashboard statistics. Then merge the draft pull request to publish the website changes. Do not merge until configuration and tests are complete.
 
 ## Database tables/functions in this branch
 
