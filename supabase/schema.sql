@@ -75,6 +75,16 @@ alter table public.premium_prompts add column if not exists poster_url text not 
 alter table public.premium_prompts add column if not exists duration text not null default '';
 create unique index if not exists premium_prompts_title_unique on public.premium_prompts (title);
 
+create table if not exists public.customer_entitlements (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  plan_code text not null check (plan_code in ('monthly', 'yearly', 'complimentary')),
+  status text not null default 'inactive' check (status in ('active', 'inactive', 'cancelled', 'expired')),
+  expires_at timestamptz,
+  granted_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.advanced_tools (
   id uuid primary key default gen_random_uuid(),
   title text not null check (char_length(title) between 1 and 160),
@@ -115,6 +125,7 @@ alter table public.saved_prompts enable row level security;
 alter table public.premium_prompts enable row level security;
 alter table public.advanced_tools enable row level security;
 alter table public.customer_orders enable row level security;
+alter table public.customer_entitlements enable row level security;
 alter table public.site_visits enable row level security;
 alter table public.login_events enable row level security;
 
@@ -136,9 +147,18 @@ using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
 
 drop policy if exists "premium_prompts_login_read" on public.premium_prompts;
-create policy "premium_prompts_login_read" on public.premium_prompts
+drop policy if exists "premium_prompts_entitled_read" on public.premium_prompts;
+create policy "premium_prompts_entitled_read" on public.premium_prompts
 for select to authenticated
-using (true);
+using (
+  public.is_studio_admin()
+  or exists (
+    select 1 from public.customer_entitlements e
+    where e.user_id = auth.uid()
+      and e.status = 'active'
+      and (e.expires_at is null or e.expires_at > now())
+  )
+);
 
 drop policy if exists "premium_prompts_admin_manage" on public.premium_prompts;
 create policy "premium_prompts_admin_manage" on public.premium_prompts
@@ -170,6 +190,17 @@ with check (auth.uid() = user_id and status = 'received');
 drop policy if exists "orders_admin_update" on public.customer_orders;
 create policy "orders_admin_update" on public.customer_orders
 for update to authenticated
+using (public.is_studio_admin())
+with check (public.is_studio_admin());
+
+drop policy if exists "entitlements_read_own_or_admin" on public.customer_entitlements;
+create policy "entitlements_read_own_or_admin" on public.customer_entitlements
+for select to authenticated
+using (auth.uid() = user_id or public.is_studio_admin());
+
+drop policy if exists "entitlements_admin_manage" on public.customer_entitlements;
+create policy "entitlements_admin_manage" on public.customer_entitlements
+for all to authenticated
 using (public.is_studio_admin())
 with check (public.is_studio_admin());
 
