@@ -5,4 +5,4 @@ export const SUPABASE_URL =
   "https://nixqrensnanfosgtheod.supabase.co";
 
 export const SUPABASE_ANON_KEY =
-  "YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY";
+  "sb_publishable_S5GmGSEfJuJQLNw8DwDWSw__AzEysFD";
