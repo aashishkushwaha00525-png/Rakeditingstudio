@@ -69,6 +69,12 @@ create table if not exists public.premium_prompts (
   updated_at timestamptz not null default now()
 );
 
+-- Also apply these columns if this schema is rerun on a project created with an earlier draft.
+alter table public.premium_prompts add column if not exists category text not null default 'PREMIUM PROMPT';
+alter table public.premium_prompts add column if not exists poster_url text not null default '';
+alter table public.premium_prompts add column if not exists duration text not null default '';
+create unique index if not exists premium_prompts_title_unique on public.premium_prompts (title);
+
 create table if not exists public.advanced_tools (
   id uuid primary key default gen_random_uuid(),
   title text not null check (char_length(title) between 1 and 160),
