@@ -65,12 +65,12 @@ async function refreshDashboard() {
   const stats = Array.isArray(data) ? data[0] : data;
   if (!stats) { box.textContent = "No statistics returned yet."; return; }
   const metrics = [
-    ["Total visits", stats.total_visits ?? 0],
+    ["Total recorded visits", stats.visits_total ?? 0],
     ["Approx. unique visitors (30d)", stats.unique_visitors_30d ?? 0],
-    ["Registered accounts", stats.registered_accounts ?? 0],
-    ["Recent logins (30d)", stats.logins_30d ?? 0],
-    ["Total orders", stats.total_orders ?? 0],
-    ["Pending orders", stats.pending_orders ?? 0]
+    ["Registered accounts", stats.registered_customers ?? 0],
+    ["Users logged in (30d)", stats.logged_in_users_30d ?? 0],
+    ["Total orders", stats.orders_total ?? 0],
+    ["Pending orders", stats.orders_pending ?? 0]
   ];
   box.innerHTML = metrics.map(([label, value]) => '<div class="metric"><strong>' + Number(value).toLocaleString() + '</strong><span>' + label + '</span></div>').join("");
 }
@@ -144,8 +144,20 @@ el("saveCurrentPromptBtn").addEventListener("click", async () => {
 });
 el("loadMyOrdersBtn").addEventListener("click", async () => {
   if (!supabase || !currentUser) return;
-  const { data, error } = await supabase.from("customer_orders").select("id,order_type,details,status,created_at").order("created_at", { ascending: false }).limit(50);
+  const { data, error } = await supabase.from("customer_orders").select("id,service_type,details,status,created_at").order("created_at", { ascending: false }).limit(50);
   if (error) return memberMessage(error.message);
-  memberMessage(data.length ? data.map((o) => o.order_type + " — " + o.status + "\n" + o.details + "\n" + new Date(o.created_at).toLocaleString()).join("\n\n") : "Abhi aapke account se koi order nahi juda hai. Existing WhatsApp enquiries automatically import nahi hote.");
+  memberMessage(data.length ? data.map((o) => o.service_type + " — " + o.status + "\n" + o.details + "\n" + new Date(o.created_at).toLocaleString()).join("\n\n") : "Abhi aapke account se koi order nahi juda hai. Existing WhatsApp enquiries automatically import nahi hote.");
 });
 init();
+
+el("saveOrderToAccountBtn").addEventListener("click", async () => {
+  if (!supabase || !currentUser) return;
+  const details = el("orderDetails")?.value?.trim();
+  const service_type = el("orderType")?.value?.trim();
+  if (!details) return memberMessage("Pehle Order section mein apni requirement likho.");
+  if (details.length > 2000) return memberMessage("Order details 2,000 characters se kam rakho.");
+  const { error } = await supabase.from("customer_orders").insert({
+    user_id: currentUser.id, service_type: service_type || "Editing enquiry", details
+  });
+  memberMessage(error ? error.message : "Enquiry aapke account ke order history mein save ho gayi. Isse payment ya booking confirm nahi hoti.");
+});
