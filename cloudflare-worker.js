@@ -85,7 +85,7 @@ export default {
                 "- Protect privacy: never request passwords, API keys, OTPs, bank/card details, or other secrets."
               ].join("\n") }]
             },
-            contents,            contents,
+            contents,
             generationConfig: { temperature: 0.7, maxOutputTokens: 700 }
           })
         }
