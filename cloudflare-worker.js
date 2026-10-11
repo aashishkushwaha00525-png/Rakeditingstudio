@@ -77,7 +77,9 @@ export default {
       );
       const data = await upstream.json();
       if (!upstream.ok) {
-        return json({ error: upstream.status === 429 ? "AI usage limit reached. Please try again later." : "Gemini request failed. Check the backend API configuration." }, 502, origin);
+        const upstreamMessage = data?.error?.message || "No error details returned";
+        const safeMessage = upstream.status === 400 ? "Gemini rejected the request (400). Check model name and request settings." : upstream.status === 401 || upstream.status === 403 ? "Gemini API authorization failed (" + upstream.status + "). Check that the API key is valid and the Generative Language API is enabled." : upstream.status === 404 ? "Gemini model or endpoint not found (404). Check the configured model name." : upstream.status === 429 ? "AI usage limit reached (429). Check Gemini quota and billing/limits." : "Gemini upstream HTTP " + upstream.status + ": " + upstreamMessage.slice(0, 240);
+        return json({ error: safeMessage, upstreamStatus: upstream.status }, 502, origin);
       }
       const reply = (data.candidates || [])
         .flatMap(candidate => candidate.content?.parts || [])
