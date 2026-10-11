@@ -1,0 +1,37 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./supabase-config.js";
+const el = (id) => document.getElementById(id);
+const configured = /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(SUPABASE_URL) && !SUPABASE_URL.includes("YOUR-PROJECT-REF") && SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.includes("YOUR_SUPABASE_");
+const auth = el("premiumAuth"), status = el("premiumStatus"), grid = el("premiumGrid");
+let db = null;
+function setStatus(text,bad=false){status.textContent=text;status.style.color=bad?"#ffaaaa":"#f4c76b";}
+function esc(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function render(rows){grid.innerHTML=rows.length?rows.map(p=>'<article class="card"><div class="poster"><span class="badge">'+esc(p.category||"PREMIUM PROMPT")+'</span>'+(p.poster_url?'<img src="'+esc(p.poster_url)+'" alt="'+esc(p.title)+' poster" loading="lazy">':'')+'<span class="duration">'+esc(p.duration||"AI prompt")+'</span></div><div class="card-body"><h3>'+esc(p.title)+'</h3><p class="desc">'+esc(p.description||"")+'</p><div class="prompt">'+esc(p.prompt_text)+'</div><button class="btn copy-premium" type="button">✦ Copy Full Prompt</button><button class="btn secondary save-premium" type="button">Save to My Prompts</button></div></article>').join(""):'<p class="note">Premium prompts abhi database mein nahi hain. Owner ko Supabase Dashboard ke Table Editor mein prompts add karne honge.</p>';
+grid.querySelectorAll(".copy-premium").forEach((b)=>b.addEventListener("click",async()=>{const t=b.parentElement.querySelector(".prompt").textContent;try{await navigator.clipboard.writeText(t);b.textContent="✓ Copied";}catch(e){setStatus("Copy failed. Prompt select karke manually copy karo.",true);}}));
+grid.querySelectorAll(".save-premium").forEach((b,i)=>b.addEventListener("click",async()=>{const p=rows[i];const {data}=await db.auth.getUser();if(!data.user)return setStatus("Sign in again to save this prompt.",true);const {error}=await db.from("saved_prompts").insert({user_id:data.user.id,title:p.title,prompt_text:p.prompt_text});setStatus(error?error.message:"Prompt saved to your account.",!!error);}));
+}
+async function showUser(user){
+ if(!user){auth.classList.remove("hidden");grid.innerHTML="";return;}
+ auth.classList.add("hidden");
+ setStatus("Checking your premium access…");
+ const {data:adminData,error:adminError}=await db.rpc("is_studio_admin");
+ const isAdmin=!adminError && adminData===true;
+ if(!isAdmin){
+  const {data:entitlement,error:entitlementError}=await db.from("customer_entitlements").select("status,expires_at").eq("user_id",user.id).maybeSingle();
+  const active=!!entitlement && entitlement.status==="active" && (!entitlement.expires_at || new Date(entitlement.expires_at).getTime()>Date.now());
+  if(entitlementError || !active){
+   grid.innerHTML="";
+   setStatus("Your account is signed in, but premium access is not active. Access is enabled only after the studio owner grants an entitlement. Payment verification is not connected yet.",true);
+   return;
+  }
+ }
+ setStatus("Signed in as "+(user.email||"customer")+". Premium access is active.");
+ const {data,error}=await db.from("premium_prompts").select("title,description,category,poster_url,duration,prompt_text").order("created_at",{ascending:false});
+ if(error){setStatus("Premium prompts load nahi hue. Database migration/RLS setup check karo.",true);return;}
+ render(data||[]);
+}
+if(!configured){setStatus("Backend setup pending. Supabase config set hone tak login disabled hai.",true);auth.querySelectorAll("input,button").forEach(n=>n.disabled=true);}
+else{db=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);const {data:{session}}=await db.auth.getSession();await showUser(session?.user||null);db.auth.onAuthStateChange((event,s)=>{if(event==="SIGNED_IN")queueMicrotask(()=>showUser(s?.user||null));if(event==="SIGNED_OUT"){showUser(null);setStatus("Sign in to view premium prompts.");}});}
+el("premiumSignup").addEventListener("submit",async e=>{e.preventDefault();if(!db)return;const email=el("premiumEmail").value.trim(),password=el("premiumPassword").value;const {data,error}=await db.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}});setStatus(error?error.message:(data.session?"Account created.":"Account created. Email confirmation may be required."),!!error);if(data.session)await showUser(data.session.user);});
+el("premiumSignin").addEventListener("submit",async e=>{e.preventDefault();if(!db)return;const {error}=await db.auth.signInWithPassword({email:el("premiumSigninEmail").value.trim(),password:el("premiumSigninPassword").value});if(error)setStatus(error.message,true);});
+el("premiumSignout").addEventListener("click",async()=>{if(db)await db.auth.signOut();});

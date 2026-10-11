@@ -1,0 +1,7 @@
+-- SECURITY NOTE:
+-- Do not store private/premium prompt text in this public repository.
+-- Add genuinely exclusive prompt content directly in the Supabase Dashboard
+-- Table Editor (premium_prompts) after configuring RLS and owner access.
+-- Prompts that have already appeared in a public HTML file or Git history
+-- should be considered public and should not be sold as secret/exclusive.
+-- This file intentionally contains no premium prompt content.
