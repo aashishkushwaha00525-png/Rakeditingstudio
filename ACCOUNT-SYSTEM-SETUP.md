@@ -1,6 +1,6 @@
 # RAK Editing Studio — customer accounts and visitor dashboard
 
-This branch now contains the customer-account UI, Supabase client integration, protected premium-prompts page, and database security foundation. It is still **not live**: `supabase-config.js` contains placeholders, and the Supabase project/schema/owner allow-list must be configured and tested first.
+This branch contains a draft customer-account UI, Supabase client integration, a premium-prompts page that queries a protected database, and database security foundation. It is still **not live**: `supabase-config.js` contains placeholders, and the Supabase project/schema/owner allow-list must be configured and tested first.
 
 ## Planned behavior
 
@@ -25,7 +25,7 @@ GitHub Pages serves static files. It cannot securely manage passwords, shared cu
    on conflict (user_id) do nothing;
    ```
 5. The frontend files `account.js` and `premium-prompts.js` already implement email sign-up/sign-in, password reset on the main site, sign-out, saved prompts, customer order history/enquiry saving, visit recording, and owner-only dashboard calls. Configure `supabase-config.js` with the project's public URL and anon/publishable key. Never use a service-role key in frontend code.
-6. Run `supabase/seed-premium-prompts.sql` after `supabase/schema.sql`. The seven prompt texts formerly embedded in `prompts.html` have been moved into the protected `premium_prompts` table and the page now loads them only after authentication. Advanced-tool records should also be entered into `advanced_tools` before advertising them as members-only.
+6. Do not commit exclusive prompt text to this public repository. After applying the schema, add only newly created private prompts directly through the Supabase Dashboard Table Editor (`premium_prompts`). Add advanced-tool records to `advanced_tools` before advertising them as members-only. Prompts previously included in public HTML or Git history must be treated as public; moving them to a database later cannot make copies already published in Git history secret.
 7. Anonymous visit recording is wired through `record_site_visit`. It uses a random browser-generated UUID and does not require storing IP addresses. Counts are estimates; one browser/profile may be counted as a separate visitor.
 8. Test with a regular customer account and an owner account. Confirm that customers cannot read other users' saved prompts/orders or access dashboard statistics. Then merge the draft pull request to publish the website changes. Do not merge until configuration and tests are complete.
 
@@ -42,3 +42,8 @@ GitHub Pages serves static files. It cannot securely manage passwords, shared cu
 - `record_site_visit`, `record_login_event`, `get_studio_dashboard_stats`: restricted database functions for tracking and dashboard metrics.
 
 No payment integration is included. Login does not mean a payment has been verified, and the existing ₹200 monthly / ₹1,000 yearly displayed plans must not automatically unlock paid benefits until a real payment-verification flow exists.
+
+
+## Privacy limitation for a public GitHub repository
+
+The repository is public. Any prompt text committed to HTML, SQL seed files, or Git history can be viewed by visitors even if the current page hides it behind sign-in. Do not use old publicly committed prompts as secret paid content. Keep new exclusive prompt text out of Git and enter it directly into Supabase after access policies are configured. A database login gate does not make previously published text private.
