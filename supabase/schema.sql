@@ -61,6 +61,9 @@ create table if not exists public.premium_prompts (
   id uuid primary key default gen_random_uuid(),
   title text not null check (char_length(title) between 1 and 160),
   description text not null default '',
+  category text not null default 'PREMIUM PROMPT',
+  poster_url text not null default '',
+  duration text not null default '',
   prompt_text text not null check (char_length(prompt_text) between 1 and 12000),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
