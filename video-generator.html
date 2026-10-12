@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#080808">
+<title>RAK AI Video Generator | RAK Editing Studio</title>
+<style>
+:root{color-scheme:dark;--gold:#f3bd54;--bg:#080808;--panel:#141414;--line:#343434;--muted:#bbb}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top right,#3b2a12 0,transparent 45%),var(--bg);color:#f7f7f7;font:16px/1.6 Arial,sans-serif}.wrap{width:min(760px,92%);margin:auto}.top{padding:16px 0;border-bottom:1px solid var(--line)}a{color:var(--gold)}.brand{font-weight:900;text-decoration:none;letter-spacing:.4px}.panel{margin:38px auto;padding:22px;background:linear-gradient(145deg,#171717,#0d0d0d);border:1px solid var(--line);border-radius:18px}h1{font-size:clamp(30px,7vw,48px);line-height:1.1;margin:10px 0}.gold{color:var(--gold)}.muted,.note{color:var(--muted)}label{display:block;margin:18px 0 7px}textarea,input{width:100%;padding:13px;background:#080808;color:white;border:1px solid #444;border-radius:10px;font:inherit}textarea{min-height:125px;resize:vertical}button{padding:12px 17px;border-radius:10px;border:1px solid #76551f;background:linear-gradient(135deg,#f3bd54,#c68b2c);color:#17110a;font-weight:800;cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}.status{padding:12px;border-radius:10px;background:#101010;border:1px solid var(--line);margin-top:16px;white-space:pre-wrap}.preview{width:100%;margin-top:16px;border-radius:12px;background:#000}.hidden{display:none}.note{font-size:13px}.back{display:inline-block;margin-top:14px}@media(max-width:520px){.panel{padding:16px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap"><a class="brand" href="./">👑 RAK EDITING STUDIO</a></div></header>
+<main class="wrap">
+<section class="panel">
+<div class="gold">RAK AI • CREATOR STUDIO</div>
+<h1>AI Video <span class="gold">Generator</span></h1>
+<p class="muted">Describe the video you want to create. This page is prepared to connect to a secure generation backend.</p>
+<div class="status" role="status">Safe preview mode: AI generation is not connected yet. No API calls or charges will be made from this page.</div>
+<label for="prompt">Your video prompt</label>
+<textarea id="prompt" maxlength="1500" placeholder="Example: A cinematic golden sunrise over misty mountains, slow camera movement, premium color grading..."></textarea>
+<div class="actions"><button id="generate" type="button">Generate video</button><button id="clear" type="button">Clear prompt</button></div>
+<div id="status" class="status" role="status" aria-live="polite">Ready. Generation stays disabled until a real backend URL and a confirmed free/authorized provider are configured.</div>
+<div id="result" class="hidden"><video id="player" class="preview" controls playsinline></video><div class="actions"><a id="download" class="gold" download="rak-ai-video.mp4">Download video</a></div></div>
+<p class="note">Security: provider API keys must never be placed in this HTML file. A server-side backend and a provider with confirmed free usage are required for real AI video generation. If a provider requires payment or credits, generation must remain blocked unless you explicitly authorize it.</p>
+<a class="back" href="./">← Back to RAK Editing Studio</a>
+</section>
+</main>
+<script>
+(() => {
+  const prompt = document.getElementById('prompt');
+  const status = document.getElementById('status');
+  const generate = document.getElementById('generate');
+  document.getElementById('clear').addEventListener('click', () => {
+    prompt.value = '';
+    status.textContent = 'Prompt cleared. No API calls or charges were made.';
+  });
+  generate.addEventListener('click', () => {
+    status.textContent = prompt.value.trim()
+      ? 'Not connected yet: no backend request was sent and no charge can occur. Connect a verified free/authorized backend before enabling generation.'
+      : 'Please enter a video prompt first.';
+  });
+})();
+</script>
+</body>
+</html>
