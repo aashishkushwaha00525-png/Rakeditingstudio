@@ -16,9 +16,9 @@
 <section class="panel">
 <div class="gold">RAK AI • CREATOR STUDIO</div>
 <h1>AI Video <span class="gold">Generator</span></h1>
-<p class="muted">Describe the video you want to create. This page is prepared to connect to a secure generation backend.</p>
+<p class="muted">Create a video from a text prompt or prepare a photo for image-to-video generation. Royal Black & Gold creator interface.</p>
 <div class="status" role="status">Safe preview mode: AI generation is not connected yet. No API calls or charges will be made from this page.</div>
-<label for="prompt">Your video prompt</label>
+<label for="mode">Generation type</label><select id="mode" style="width:100%;padding:13px;background:#080808;color:white;border:1px solid #444;border-radius:10px;font:inherit"><option value="text">Text to video</option><option value="photo">Photo to video</option></select><div id="photo-wrap" class="hidden"><label for="photo">Choose a photo (JPG/PNG/WebP)</label><input id="photo" type="file" accept="image/jpeg,image/png,image/webp"><img id="photo-preview" class="preview hidden" alt="Selected photo preview"></div><label for="prompt">Your video prompt</label>
 <textarea id="prompt" maxlength="1500" placeholder="Example: A cinematic golden sunrise over misty mountains, slow camera movement, premium color grading..."></textarea>
 <div class="actions"><button id="generate" type="button">Generate video</button><button id="clear" type="button">Clear prompt</button></div>
 <div id="status" class="status" role="status" aria-live="polite">Ready. Generation stays disabled until a real backend URL and a confirmed free/authorized provider are configured.</div>
@@ -32,14 +32,27 @@
   const prompt = document.getElementById('prompt');
   const status = document.getElementById('status');
   const generate = document.getElementById('generate');
+  const mode = document.getElementById('mode');
+  const photoWrap = document.getElementById('photo-wrap');
+  const photo = document.getElementById('photo');
+  const photoPreview = document.getElementById('photo-preview');
+  mode.addEventListener('change', () => { photoWrap.classList.toggle('hidden', mode.value !== 'photo'); });
+  photo.addEventListener('change', () => {
+    const file = photo.files && photo.files[0];
+    if (!file) { photoPreview.classList.add('hidden'); photoPreview.removeAttribute('src'); return; }
+    if (!['image/jpeg','image/png','image/webp'].includes(file.type)) { status.textContent = 'Please choose a JPG, PNG, or WebP image.'; photo.value = ''; return; }
+    photoPreview.src = URL.createObjectURL(file);
+    photoPreview.classList.remove('hidden');
+    status.textContent = 'Photo selected locally. It has not been uploaded or sent anywhere.';
+  });
   document.getElementById('clear').addEventListener('click', () => {
-    prompt.value = '';
-    status.textContent = 'Prompt cleared. No API calls or charges were made.';
+    prompt.value = ''; photo.value = ''; photoPreview.classList.add('hidden'); photoPreview.removeAttribute('src');
+    status.textContent = 'Cleared. No API calls or charges were made.';
   });
   generate.addEventListener('click', () => {
-    status.textContent = prompt.value.trim()
-      ? 'Not connected yet: no backend request was sent and no charge can occur. Connect a verified free/authorized backend before enabling generation.'
-      : 'Please enter a video prompt first.';
+    if (!prompt.value.trim()) { status.textContent = 'Please enter a video prompt first.'; return; }
+    if (mode.value === 'photo' && !(photo.files && photo.files[0])) { status.textContent = 'Choose a photo first. Nothing was uploaded.'; return; }
+    status.textContent = 'Safe mode: generation backend is not connected. No prompt or photo was sent, and no charge can occur. A verified free/authorized backend is required before generation can start.';
   });
 })();
 </script>
