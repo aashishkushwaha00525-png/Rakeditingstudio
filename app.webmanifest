@@ -6,9 +6,9 @@
   "start_url": "./app.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#090909",
-  "theme_color": "#090909",
+  "background_color": "#100c07",
+  "theme_color": "#100c07",
   "icons": [
-    {"src":"assets/rak-ai-logo.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+    {"src":"assets/rak-ai-premium.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
   ]
 }
