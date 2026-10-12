@@ -17,13 +17,13 @@
 <div class="gold">RAK AI • CREATOR STUDIO</div>
 <h1>AI Video <span class="gold">Generator</span></h1>
 <p class="muted">Create a video from a text prompt or prepare a photo for image-to-video generation. Royal Black & Gold creator interface.</p>
-<div class="status" role="status">Safe preview mode: AI generation is not connected yet. No API calls or charges will be made from this page.</div>
+<div class="status" role="status">Free test option: use the public LTX-2.5 demo in a new tab. It uses a shared queue, so it may be busy or unavailable. This RAK page does not enter a payment method or send a paid API request.</div>
 <label for="mode">Generation type</label><select id="mode" style="width:100%;padding:13px;background:#080808;color:white;border:1px solid #444;border-radius:10px;font:inherit"><option value="text">Text to video</option><option value="photo">Photo to video</option></select><div id="photo-wrap" class="hidden"><label for="photo">Choose a photo (JPG/PNG/WebP)</label><input id="photo" type="file" accept="image/jpeg,image/png,image/webp"><img id="photo-preview" class="preview hidden" alt="Selected photo preview"></div><label for="prompt">Your video prompt</label>
 <textarea id="prompt" maxlength="1500" placeholder="Example: A cinematic golden sunrise over misty mountains, slow camera movement, premium color grading..."></textarea>
-<div class="actions"><button id="generate" type="button">Generate video</button><button id="clear" type="button">Clear prompt</button></div>
-<div id="status" class="status" role="status" aria-live="polite">Ready. Generation stays disabled until a real backend URL and a confirmed free/authorized provider are configured.</div>
+<div class="actions"><button id="generate" type="button">Open free AI generator</button><button id="clear" type="button">Clear prompt</button></div>
+<div id="status" class="status" role="status" aria-live="polite">Ready. Tap “Open free AI generator” to try the public demo. Copy your prompt there and, for photo-to-video, select your photo again on that demo.</div>
 <div id="result" class="hidden"><video id="player" class="preview" controls playsinline></video><div class="actions"><a id="download" class="gold" download="rak-ai-video.mp4">Download video</a></div></div>
-<p class="note">Security: provider API keys must never be placed in this HTML file. A server-side backend and a provider with confirmed free usage are required for real AI video generation. If a provider requires payment or credits, generation must remain blocked unless you explicitly authorize it.</p>
+<p class="note">Free demo note: the external demo is a separate service with shared, limited capacity; generation can fail or be queued. Do not enter payment details or an API token. RAK does not control that service or guarantee it will always remain free. For a permanent integrated generator, a separate backend and carefully capped provider access would still be needed.</p>
 <a class="back" href="./">← Back to RAK Editing Studio</a>
 </section>
 </main>
@@ -52,7 +52,8 @@
   generate.addEventListener('click', () => {
     if (!prompt.value.trim()) { status.textContent = 'Please enter a video prompt first.'; return; }
     if (mode.value === 'photo' && !(photo.files && photo.files[0])) { status.textContent = 'Choose a photo first. Nothing was uploaded.'; return; }
-    status.textContent = 'Safe mode: generation backend is not connected. No prompt or photo was sent, and no charge can occur. A verified free/authorized backend is required before generation can start.';
+    status.textContent = 'Opening the public free demo in a new tab. Copy your prompt into the demo; if using Photo to video, upload the photo there too. This RAK page does not send your prompt/photo or make a paid API call.';
+    window.open('https://arpitkgoyal-ltx-2-5-demo.static.hf.space/index.html', '_blank', 'noopener,noreferrer');
   });
 })();
 </script>
