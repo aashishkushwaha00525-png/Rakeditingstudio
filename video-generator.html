@@ -16,14 +16,12 @@
 <section class="panel">
 <div class="gold">RAK AI • CREATOR STUDIO</div>
 <h1>AI Video <span class="gold">Generator</span></h1>
-<p class="muted">Create a video from a text prompt or prepare a photo for image-to-video generation. Royal Black & Gold creator interface.</p>
-<div class="status" role="status">Free test option: use the public LTX-2.5 demo in a new tab. It uses a shared queue, so it may be busy or unavailable. This RAK page does not enter a payment method or send a paid API request.</div>
-<label for="mode">Generation type</label><select id="mode" style="width:100%;padding:13px;background:#080808;color:white;border:1px solid #444;border-radius:10px;font:inherit"><option value="text">Text to video</option><option value="photo">Photo to video</option></select><div id="photo-wrap" class="hidden"><label for="photo">Choose a photo (JPG/PNG/WebP)</label><input id="photo" type="file" accept="image/jpeg,image/png,image/webp"><img id="photo-preview" class="preview hidden" alt="Selected photo preview"></div><label for="prompt">Your video prompt</label>
-<textarea id="prompt" maxlength="1500" placeholder="Example: A cinematic golden sunrise over misty mountains, slow camera movement, premium color grading..."></textarea>
-<div class="actions"><button id="generate" type="button">Open free AI generator</button><button id="clear" type="button">Clear prompt</button></div>
-<div id="status" class="status" role="status" aria-live="polite">Ready. Tap “Open free AI generator” to try the public demo. Copy your prompt there and, for photo-to-video, select your photo again on that demo.</div>
-<div id="result" class="hidden"><video id="player" class="preview" controls playsinline></video><div class="actions"><a id="download" class="gold" download="rak-ai-video.mp4">Download video</a></div></div>
-<p class="note">Free demo note: the external demo is a separate service with shared, limited capacity; generation can fail or be queued. Do not enter payment details or an API token. RAK does not control that service or guarantee it will always remain free. For a permanent integrated generator, a separate backend and carefully capped provider access would still be needed.</p>
+<p class="muted">Text-to-video aur photo-to-video ko isi page par try karo. Generator neeche embedded hai.</p>
+<div class="status" role="status">Free demo mode: yeh shared public GPU queue use karta hai, isliye kabhi busy ho sakta hai. Koi paid API RAK website se call nahi hoti. Optional API-token box aaye to use khaali chhodo; payment details bhi mat daalo.</div>
+<div style="margin-top:18px;border:1px solid #343434;border-radius:14px;overflow:hidden;background:#fff">
+<iframe title="LTX AI video generator" src="https://arpitkgoyal-ltx-2-5-demo.static.hf.space/index.html" style="display:block;width:100%;height:1050px;border:0;background:#fff" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="clipboard-write"></iframe>
+</div>
+<p class="note">Agar embedded demo load na ho, <a href="https://arpitkgoyal-ltx-2-5-demo.static.hf.space/index.html" target="_blank" rel="noopener noreferrer">Open generator in a new tab</a>. Demo availability, queue, and free quota are controlled by the external provider, not RAK Editing Studio.</p>
 <a class="back" href="./">← Back to RAK Editing Studio</a>
 </section>
 </main>
