@@ -1,0 +1,14 @@
+{
+  "id": "./app.html",
+  "name": "RAK AI — Royal Aashish King",
+  "short_name": "RAK AI",
+  "description": "RAK AI Studio: chat, photo and video prompt tools.",
+  "start_url": "./app.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#090909",
+  "theme_color": "#090909",
+  "icons": [
+    {"src":"assets/rak-ai-logo.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
