@@ -1,18 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-<defs>
- <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff5c0"/><stop offset=".42" stop-color="#f6bf4a"/><stop offset="1" stop-color="#9d5e13"/></linearGradient>
- <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8dfcff"/><stop offset=".5" stop-color="#168dff"/><stop offset="1" stop-color="#4a39ff"/></linearGradient>
- <filter id="glow"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-</defs>
-<rect width="512" height="512" rx="100" fill="#080b16"/>
-<circle cx="256" cy="256" r="215" fill="none" stroke="#176dff" stroke-width="5" opacity=".65"/>
-<circle cx="256" cy="256" r="195" fill="none" stroke="#f4bd4d" stroke-width="2" opacity=".6"/>
-<path d="M145 145 L175 185 L220 125 L256 178 L300 125 L337 185 L368 145 L353 224 L159 224 Z" fill="url(#gold)" stroke="#fff0a7" stroke-width="5" stroke-linejoin="round"/>
-<g fill="#09101e" stroke="url(#blue)" stroke-width="7" stroke-linejoin="round" filter="url(#glow)">
-<path d="M112 338 L153 230 L201 230 L241 338 L201 338 L190 308 L158 308 L147 338 Z M169 278 L180 278 L174 260 Z" fill="#0b1530"/>
-<path d="M248 230 L287 230 L287 267 L322 230 L369 230 L324 280 L371 338 L324 338 L295 297 L287 306 L287 338 L248 338 Z" fill="#0b1530"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" role="img" aria-labelledby="title">
+<title id="title">RAK AI</title>
+<rect width="1200" height="400" rx="18" fill="#fff"/>
+<g fill="none" stroke="#16b4a9" stroke-width="25" stroke-linecap="round" stroke-linejoin="round">
+<path d="M190 300 V105 Q190 75 222 75 H292 Q347 75 347 125 V150 Q347 190 300 190 H250"/>
+<path d="M300 190 L365 300"/>
+<path d="M340 95 C380 55 440 75 455 125 C474 190 448 268 400 300 C370 320 340 298 320 275"/>
+<path d="M370 270 L410 155 L445 270 M385 230 H430"/>
 </g>
-<text x="256" y="391" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="39" letter-spacing="5" fill="url(#gold)">RAK AI</text>
-<path d="M150 416 H362" stroke="url(#blue)" stroke-width="5" stroke-linecap="round" filter="url(#glow)"/>
-<text x="256" y="450" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" letter-spacing="4" fill="#c6d8ff">ROYAL • INTELLIGENCE</text>
+<text x="510" y="258" font-family="Arial,Helvetica,sans-serif" font-size="154" font-weight="500" letter-spacing="1" fill="#050505">RAK AI</text>
 </svg>
