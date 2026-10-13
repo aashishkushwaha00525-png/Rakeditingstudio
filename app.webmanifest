@@ -9,6 +9,6 @@
   "background_color": "#100c07",
   "theme_color": "#100c07",
   "icons": [
-    {"src":"assets/rak-ai-original.jpg?v=5","sizes":"512x256","type":"image/jpeg","purpose":"any"}
+    {"src":"assets/rak-ai-original.jpg?v=6","sizes":"256x128","type":"image/jpeg","purpose":"any"}
   ]
 }
