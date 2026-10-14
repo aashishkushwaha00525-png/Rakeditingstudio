@@ -11,6 +11,52 @@ function cors(origin) {
   };
 }
 
+function decodeBase64(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+const ALLOWED_MEDIA_TYPES = new Set([
+  "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif",
+  "video/mp4", "video/mpeg", "video/mov", "video/avi", "video/x-flv",
+  "video/mpg", "video/webm", "video/wmv", "video/3gpp",
+  "application/pdf", "text/plain", "text/csv"
+]);
+
+async function readAttachments(input) {
+  if (input == null) return [];
+  if (!Array.isArray(input)) throw new Error("Attachments must be a list.");
+  if (input.length > 3) throw new Error("Attach at most 3 files per message.");
+  const parts = [];
+  let totalBytes = 0;
+  for (const item of input) {
+    if (!item || typeof item.dataUrl !== "string") throw new Error("One attachment could not be read.");
+    const match = item.dataUrl.match(/^data:([^;,]+);base64,([A-Za-z0-9+/=]+)$/);
+    if (!match) throw new Error("An attachment has an invalid file format.");
+    const mimeType = match[1].toLowerCase();
+    const base64 = match[2];
+    if (!ALLOWED_MEDIA_TYPES.has(mimeType)) {
+      throw new Error("Unsupported file type: " + mimeType + ". Use an image, video, PDF, TXT, or CSV file.");
+    }
+    const bytes = decodeBase64(base64);
+    totalBytes += bytes.byteLength;
+    if (bytes.byteLength > 4 * 1024 * 1024 || totalBytes > 4 * 1024 * 1024) {
+      throw new Error("Attachments must total 4 MB or less.");
+    }
+    const name = typeof item.name === "string" ? item.name.slice(0, 120) : "attached file";
+    if (mimeType === "text/plain" || mimeType === "text/csv") {
+      const text = new TextDecoder().decode(bytes).slice(0, 30000);
+      parts.push({ text: "\\n[Attached " + mimeType + " file: " + name + "]\\n" + text + "\\n[End attached file]" });
+    } else {
+      parts.push({ inlineData: { mimeType, data: base64 } });
+      parts.push({ text: "[Attached " + mimeType + " file: " + name + ". Please inspect/analyze this file and answer the user's question about it.]" });
+    }
+  }
+  return parts;
+}
+
 function json(data, status, origin) {
   return new Response(JSON.stringify(data), {
     status,
@@ -45,6 +91,13 @@ export default {
       return json({ error: "Message must be between 1 and 1200 characters" }, 400, origin);
     }
 
+    let attachmentParts;
+    try {
+      attachmentParts = await readAttachments(body.attachments);
+    } catch (error) {
+      return json({ error: error.message || "Could not read attachments." }, 400, origin);
+    }
+
     const history = Array.isArray(body.history) ? body.history.slice(-8) : [];
     const contents = [];
     for (const item of history) {
@@ -56,8 +109,10 @@ export default {
     }
     // Avoid sending the latest user question twice when the frontend includes it in history.
     const last = contents[contents.length - 1];
-    if (!(last && last.role === "user" && last.parts[0].text === message)) {
-      contents.push({ role: "user", parts: [{ text: message }] });
+    if (last && last.role === "user" && last.parts[0].text === message) {
+      last.parts.push(...attachmentParts);
+    } else {
+      contents.push({ role: "user", parts: [{ text: message }, ...attachmentParts] });
     }
 
     try {
@@ -100,7 +155,7 @@ RAK EDITING STUDIO WEBSITE KNOWLEDGE:
         .join("\n")
         .trim();
       if (!reply) return json({ error: "Gemini did not return a text reply" }, 502, origin);
-      return json({ reply }, 200, origin);
+      return json({ reply, attachmentsProcessed: attachmentParts.length > 0 }, 200, origin);
     } catch {
       return json({ error: "Could not reach Gemini. Please try again later." }, 502, origin);
     }
