@@ -1,64 +1,163 @@
 const ALLOWED_ORIGIN = "https://rakeditingstudio.github.io";
 const MODEL = "gemini-2.5-flash";
 
+function cors(origin) {
+  const allowed = origin === ALLOWED_ORIGIN ? ALLOWED_ORIGIN : ALLOWED_ORIGIN;
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Vary": "Origin"
+  };
+}
+
+function decodeBase64(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+const ALLOWED_MEDIA_TYPES = new Set([
+  "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif",
+  "video/mp4", "video/mpeg", "video/mov", "video/avi", "video/x-flv",
+  "video/mpg", "video/webm", "video/wmv", "video/3gpp",
+  "application/pdf", "text/plain", "text/csv"
+]);
+
+async function readAttachments(input) {
+  if (input == null) return [];
+  if (!Array.isArray(input)) throw new Error("Attachments must be a list.");
+  if (input.length > 3) throw new Error("Attach at most 3 files per message.");
+  const parts = [];
+  let totalBytes = 0;
+  for (const item of input) {
+    if (!item || typeof item.dataUrl !== "string") throw new Error("One attachment could not be read.");
+    const match = item.dataUrl.match(/^data:([^;,]+);base64,([A-Za-z0-9+/=]+)$/);
+    if (!match) throw new Error("An attachment has an invalid file format.");
+    const mimeType = match[1].toLowerCase();
+    const base64 = match[2];
+    if (!ALLOWED_MEDIA_TYPES.has(mimeType)) {
+      throw new Error("Unsupported file type: " + mimeType + ". Use an image, video, PDF, TXT, or CSV file.");
+    }
+    const bytes = decodeBase64(base64);
+    totalBytes += bytes.byteLength;
+    if (bytes.byteLength > 4 * 1024 * 1024 || totalBytes > 4 * 1024 * 1024) {
+      throw new Error("Attachments must total 4 MB or less.");
+    }
+    const name = typeof item.name === "string" ? item.name.slice(0, 120) : "attached file";
+    if (mimeType === "text/plain" || mimeType === "text/csv") {
+      const text = new TextDecoder().decode(bytes).slice(0, 30000);
+      parts.push({ text: "\\n[Attached " + mimeType + " file: " + name + "]\\n" + text + "\\n[End attached file]" });
+    } else {
+      parts.push({ inlineData: { mimeType, data: base64 } });
+      parts.push({ text: "[Attached " + mimeType + " file: " + name + ". Please inspect/analyze this file and answer the user's question about it.]" });
+    }
+  }
+  return parts;
+}
+
+function json(data, status, origin) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json; charset=utf-8", ...cors(origin) }
+  });
+}
+
 export default {
   async fetch(request, env) {
-    const cors = {
-      "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Vary": "Origin"
-    };
-    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
-    const json = (body, status = 200) => new Response(JSON.stringify(body), {
-      status, headers: { ...cors, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }
-    });
-    if (request.method !== "POST") return json({ error: "Use POST for chat requests." }, 405);
-    if (!env.GEMINI_API_KEY) return json({ error: "AI backend is not configured yet." }, 503);
+    const origin = request.headers.get("Origin") || "";
+    const url = new URL(request.url);
+
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: cors(origin) });
+    }
+    if (origin && origin !== ALLOWED_ORIGIN) {
+      return json({ error: "Origin not allowed" }, 403, origin);
+    }
+    if (url.pathname !== "/api/chat") return json({ error: "Not found" }, 404, origin);
+    if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, origin);
+    if (!env.GEMINI_API_KEY) return json({ error: "Server API key is not configured" }, 503, origin);
+
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return json({ error: "Invalid JSON request" }, 400, origin);
+    }
+
+    const message = typeof body.message === "string" ? body.message.trim() : "";
+    if (!message || message.length > 1200) {
+      return json({ error: "Message must be between 1 and 1200 characters" }, 400, origin);
+    }
+
+    let attachmentParts;
+    try {
+      attachmentParts = await readAttachments(body.attachments);
+    } catch (error) {
+      return json({ error: error.message || "Could not read attachments." }, 400, origin);
+    }
+
+    const history = Array.isArray(body.history) ? body.history.slice(-8) : [];
+    const contents = [];
+    for (const item of history) {
+      if (!item || typeof item.text !== "string") continue;
+      const role = item.role === "assistant" ? "model" : item.role === "user" ? "user" : null;
+      if (!role) continue;
+      const text = item.text.trim().slice(0, 1200);
+      if (text) contents.push({ role, parts: [{ text }] });
+    }
+    // Avoid sending the latest user question twice when the frontend includes it in history.
+    const last = contents[contents.length - 1];
+    if (last && last.role === "user" && last.parts[0].text === message) {
+      last.parts.push(...attachmentParts);
+    } else {
+      contents.push({ role: "user", parts: [{ text: message }, ...attachmentParts] });
+    }
 
     try {
-      const body = await request.json();
-      const message = typeof body.message === "string" ? body.message.trim() : "";
-      if (!message) return json({ error: "Please enter a question." }, 400);
-      if (message.length > 1200) return json({ error: "Please keep each message under 1200 characters." }, 413);
+      const upstream = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(env.GEMINI_API_KEY)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: "You are RAK AI, the friendly assistant for RAK Editing Studio by Royal Aashish King. Help with video editing, photo editing, creator tools, AI prompts, and website guidance. Reply clearly and helpfully in the language the user uses, especially Hindi or Hinglish. Never claim you performed actions you did not perform.
 
-      const history = Array.isArray(body.history) ? body.history.slice(-8) : [];
-      const contents = [];
-      for (const item of history) {
-        if (!item || typeof item.text !== "string") continue;
-        const role = item.role === "assistant" ? "model" : item.role === "user" ? "user" : null;
-        if (!role) continue;
-        contents.push({ role, parts: [{ text: item.text.slice(0, 1200) }] });
-      }
-      if (!contents.length || contents[contents.length - 1].role !== "user" ||
-          contents[contents.length - 1].parts[0].text !== message) {
-        contents.push({ role: "user", parts: [{ text: message }] });
-      }
-
-      const upstream = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + MODEL + ":generateContent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: "You are RAKGPT, the friendly AI helper for RAK Editing Studio by Royal Aashish King. Help users with video editing, photo editing, Reels, creator tools, safe AI prompts, and website questions. Answer clearly and simply, matching the user's language (Hindi/Hinglish or English). Be honest about uncertainty. Never claim to have changed a website or completed an action unless it actually happened. Do not request passwords, API keys, or private account information. Keep answers useful and concise." }] },
-          contents,
-          generationConfig: { temperature: 0.7, maxOutputTokens: 700 }
-        })
-      });
-      const result = await upstream.json();
+RAK EDITING STUDIO WEBSITE KNOWLEDGE:
+- Editing Tools & Apps: the website lists creator/editing resources and links to tools. External app availability and features may vary by region and provider.
+- Video Showcase: visitors can view the studio's YouTube/video showcase; the site also describes adding YouTube or direct video links through its demo admin area.
+- Photos and media gallery: the site can show photo/poster content.
+- Photo & Video AI Prompt Maker: users can select styles, formats, mood, and scene details to build/copy a text prompt. It creates prompts only; it does not itself generate the finished image or video.
+- AI Prompt Library: visitors can browse and copy prompts to use in their preferred AI tools.
+- CapCut Ultra 2027 promo: its button opens a Telegram post. Access to that post may require membership in the source Telegram channel; do not promise the file will be directly downloadable or that access is guaranteed.
+- Order Editing & Get Help: users can prepare a WhatsApp order/enquiry message for reel/video editing, photo editing, poster/thumbnail design, AI prompt help, or another question. Price and delivery time must be confirmed directly before ordering.
+- Locked Contact / Plans: the website displays WhatsApp and call contact as locked, with a ₹200 monthly plan and ₹1,000 yearly plan. These are displayed plan prices, not proof that a payment has been taken or verified. The site currently says payment-gateway verification is required before automatic unlocking can be enabled. Do not claim that payment, automatic unlocking, subscription management, or private contact access is currently working. Do not ask users to share payment credentials, OTPs, or sensitive details in chat. Direct them to the website's displayed official contact/social options for questions.
+- Admin Panel: this is a DEMO panel, not a secure private admin system. Its demo PIN is 2468 and is visible in the starter website code, so it must not be described as secure. It saves custom tools, videos, photos/posters, and prompts only in the current browser using local storage; changes do not automatically publish to other visitors or sync across devices. A real shared admin system requires authenticated backend storage.
+- RAK AI: answer questions about these real website limitations clearly. If a feature is only a visual/demo feature, say so plainly. Do not invent extra plan benefits, payment methods, prices, admin powers, or a way to unlock locked contacts. If unsure about a current site detail, say you are not certain and explain what the website currently indicates.
+- Protect privacy: never request passwords, API keys, OTPs, bank/card details, or other secrets." }]
+            },
+            contents,
+            generationConfig: { temperature: 0.7, maxOutputTokens: 700 }
+          })
+        }
+      );
+      const data = await upstream.json();
       if (!upstream.ok) {
-        const detail = result?.error?.message || "No error detail returned by Gemini.";
-        console.error("Gemini API error", upstream.status, detail);
-        return json({ error: "The AI service could not answer right now. Please try again later." }, 502);
+        const upstreamMessage = data?.error?.message || "No error details returned";
+        const safeMessage = upstream.status === 400 ? "Gemini rejected the request (400). Check model name and request settings." : upstream.status === 401 || upstream.status === 403 ? "Gemini API authorization failed (" + upstream.status + "). Check that the API key is valid and the Generative Language API is enabled." : upstream.status === 404 ? "Gemini model or endpoint not found (404). Check the configured model name." : upstream.status === 429 ? "AI usage limit reached (429). Check Gemini quota and billing/limits." : "Gemini upstream HTTP " + upstream.status + ": " + upstreamMessage.slice(0, 240);
+        return json({ error: safeMessage, upstreamStatus: upstream.status }, 502, origin);
       }
-      const reply = (result.candidates || []).flatMap(c => c.content?.parts || []).map(p => p.text || "").join("\n").trim();
-      if (!reply) {
-        console.error("Gemini returned no text reply.");
-        return json({ error: "No answer returned. Please try a different question." }, 502);
-      }
-      return json({ reply });
-    } catch (error) {
-      console.error("RAKGPT request processing error", error?.message || "Unknown error");
-      return json({ error: "Unable to process this request. Please try again." }, 400);
+      const reply = (data.candidates || [])
+        .flatMap(candidate => candidate.content?.parts || [])
+        .map(part => part.text || "")
+        .join("\n")
+        .trim();
+      if (!reply) return json({ error: "Gemini did not return a text reply" }, 502, origin);
+      return json({ reply, attachmentsProcessed: attachmentParts.length > 0 }, 200, origin);
+    } catch {
+      return json({ error: "Could not reach Gemini. Please try again later." }, 502, origin);
     }
   }
 };
