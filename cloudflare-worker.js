@@ -75,16 +75,33 @@ export default {
     if (origin && origin !== ALLOWED_ORIGIN) {
       return json({ error: "Origin not allowed" }, 403, origin);
     }
-    if (url.pathname !== "/api/chat") return json({ error: "Not found" }, 404, origin);
     if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, origin);
     if (!env.GEMINI_API_KEY) return json({ error: "Server API key is not configured" }, 503, origin);
 
     let body;
-    try {
-      body = await request.json();
-    } catch {
-      return json({ error: "Invalid JSON request" }, 400, origin);
+    try { body = await request.json(); } catch { return json({ error: "Invalid JSON request" }, 400, origin); }
+
+    if (url.pathname === "/api/image") {
+      const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
+      if (!prompt || prompt.length > 1200) return json({ error: "Prompt must be between 1 and 1200 characters" }, 400, origin);
+      try {
+        const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${encodeURIComponent(env.GEMINI_API_KEY)}`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "Generate one high-quality image based on this request. Return an image, not only a text description. Prompt: " + prompt }] }], generationConfig: { responseModalities: ["IMAGE", "TEXT"] } })
+        });
+        const data = await upstream.json();
+        if (!upstream.ok) {
+          const msg = data?.error?.message || "Image API request failed";
+          const safe = upstream.status === 401 || upstream.status === 403 ? "Gemini API authorization failed. Check the API key and image model access." : upstream.status === 429 ? "Image API quota or rate limit reached. Check quota and pricing." : upstream.status === 404 ? "Image model not found or unavailable for this API key." : "Image API error (" + upstream.status + "): " + msg.slice(0, 180);
+          return json({ error: safe }, 502, origin);
+        }
+        const parts = (data.candidates || []).flatMap(c => c.content?.parts || []);
+        const imagePart = parts.find(p => p.inlineData?.data && p.inlineData?.mimeType);
+        if (!imagePart) return json({ error: "Model returned no image. Try a clearer prompt or check image-model access." }, 502, origin);
+        return json({ image: "data:" + imagePart.inlineData.mimeType + ";base64," + imagePart.inlineData.data }, 200, origin);
+      } catch { return json({ error: "Could not reach the image-generation API. Try again later." }, 502, origin); }
     }
+    if (url.pathname !== "/api/chat") return json({ error: "Not found" }, 404, origin);
 
     const message = typeof body.message === "string" ? body.message.trim() : "";
     if (!message || message.length > 1200) {
