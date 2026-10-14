@@ -48,7 +48,7 @@ async function readAttachments(input) {
     const name = typeof item.name === "string" ? item.name.slice(0, 120) : "attached file";
     if (mimeType === "text/plain" || mimeType === "text/csv") {
       const text = new TextDecoder().decode(bytes).slice(0, 30000);
-      parts.push({ text: "\\n[Attached " + mimeType + " file: " + name + "]\\n" + text + "\\n[End attached file]" });
+      parts.push({ text: "\n[Attached " + mimeType + " file: " + name + "]\\n" + text + "\\n[End attached file]" });
     } else {
       parts.push({ inlineData: { mimeType, data: base64 } });
       parts.push({ text: "[Attached " + mimeType + " file: " + name + ". Please inspect/analyze this file and answer the user's question about it.]" });
