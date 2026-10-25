@@ -92,9 +92,9 @@ export default {
             uses: 1,
             expireTime: new Date(now + 30 * 60 * 1000).toISOString(),
             newSessionExpireTime: new Date(now + 60 * 1000).toISOString(),
-            liveConnectConstraints: {
+            bidiGenerateContentSetup: {
               model: "models/gemini-3.8-live",
-              config: { sessionResumption: {}, responseModalities: ["AUDIO"] }
+              generationConfig: { responseModalities: ["AUDIO"] }
             }
           })
         });
