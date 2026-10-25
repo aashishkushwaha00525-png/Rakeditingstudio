@@ -216,7 +216,7 @@ RAK EDITING STUDIO WEBSITE KNOWLEDGE:
 - Protect privacy: never request passwords, API keys, OTPs, bank/card details, or other secrets.` }]
             },
             contents,
-            generationConfig: { temperature: 0.7, maxOutputTokens: 700 }
+            generationConfig: { maxOutputTokens: 700 }
           })
         }
       ), [MODEL, "gemini-3.6-flash", "gemini-3.5-flash-lite"]);
