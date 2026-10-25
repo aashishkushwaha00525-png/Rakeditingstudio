@@ -13,7 +13,7 @@ function cors(origin) {
 
 
 async function retryTransient(fetcher, models = [MODEL, "gemini-3.6-flash", "gemini-3.5-flash-lite"]) {
-  // Try each model in order. Only retry temporary capacity/rate-limit errors once.
+  // Try each model in order. Retry only temporary errors once on the primary model.
   const fallbackStatuses = [400, 404, 429, 500, 502, 503, 504];
   const transientStatuses = [429, 500, 502, 503, 504];
   let response;
