@@ -91,11 +91,7 @@ export default {
           body: JSON.stringify({
             uses: 1,
             expireTime: new Date(now + 30 * 60 * 1000).toISOString(),
-            newSessionExpireTime: new Date(now + 60 * 1000).toISOString(),
-            liveConnectConstraints: {
-              model: "models/gemini-3.8-live",
-              config: { sessionResumption: {}, responseModalities: ["AUDIO"] }
-            }
+            newSessionExpireTime: new Date(now + 60 * 1000).toISOString()
           })
         });
         const data = await upstream.json();
