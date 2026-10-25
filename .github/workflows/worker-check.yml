@@ -1,0 +1,27 @@
+name: RAK AI Worker Check
+
+on:
+  push:
+    branches: [main, feature/rak-ai-live-voice]
+  pull_request:
+    paths:
+      - 'cloudflare-worker.js'
+      - 'wrangler.jsonc'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/worker-check.yml'
+
+jobs:
+  syntax-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Worker tooling
+        run: npm install
+      - name: Check Worker syntax
+        run: npm run build
