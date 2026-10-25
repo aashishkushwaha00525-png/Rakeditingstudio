@@ -11,6 +11,24 @@ function cors(origin) {
   };
 }
 
+
+async function retryTransient(fetcher, attempts = 3) {
+  let response;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    response = await fetcher();
+    if (![429, 500, 502, 503, 504].includes(response.status) || attempt === attempts - 1) {
+      return response;
+    }
+    // Short backoff for temporary provider overload/rate limits.
+    const retryAfter = Number(response.headers.get("Retry-After"));
+    const delayMs = Number.isFinite(retryAfter) && retryAfter > 0
+      ? Math.min(retryAfter * 1000, 2500)
+      : 400 * (attempt + 1);
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+  return response;
+}
+
 function decodeBase64(base64) {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
@@ -166,7 +184,7 @@ export default {
     }
 
     try {
-      const upstream = await fetch(
+      const upstream = await retryTransient(() => fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(env.GEMINI_API_KEY)}`,
         {
           method: "POST",
@@ -192,11 +210,11 @@ RAK EDITING STUDIO WEBSITE KNOWLEDGE:
             generationConfig: { temperature: 0.7, maxOutputTokens: 700 }
           })
         }
-      );
+      ));
       const data = await upstream.json();
       if (!upstream.ok) {
         const upstreamMessage = data?.error?.message || "No error details returned";
-        const safeMessage = upstream.status === 400 ? "Gemini rejected the request (400). Check model name and request settings." : upstream.status === 401 || upstream.status === 403 ? "Gemini API authorization failed (" + upstream.status + "). Check that the API key is valid and the Generative Language API is enabled." : upstream.status === 404 ? "Gemini model or endpoint not found (404). Check the configured model name." : upstream.status === 429 ? "AI usage limit reached (429). Check Gemini quota and billing/limits." : "Gemini upstream HTTP " + upstream.status + ": " + upstreamMessage.slice(0, 240);
+        const safeMessage = upstream.status === 400 ? "Gemini rejected the request (400). Check model name and request settings." : upstream.status === 401 || upstream.status === 403 ? "Gemini API authorization failed (" + upstream.status + "). Check that the API key is valid and the Generative Language API is enabled." : upstream.status === 404 ? "Gemini model or endpoint not found (404). Check the configured model name." : upstream.status === 429 ? "Gemini is busy or the usage limit was reached (429). Please wait a little and try again; check quota if it continues." : [500, 502, 503, 504].includes(upstream.status) ? "Gemini is temporarily busy (HTTP " + upstream.status + "). RAK AI retried automatically; please try again shortly if it still fails." : "Gemini upstream HTTP " + upstream.status + ": " + upstreamMessage.slice(0, 240);
         return json({ error: safeMessage, upstreamStatus: upstream.status }, 502, origin);
       }
       const reply = (data.candidates || [])
