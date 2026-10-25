@@ -1,5 +1,5 @@
 const ALLOWED_ORIGIN = "https://rakeditingstudio.github.io";
-const MODEL = "gemini-3.5-flash-lite";
+const MODEL = "gemini-2.5-flash-lite";
 
 function cors(origin) {
   const allowed = origin === ALLOWED_ORIGIN ? ALLOWED_ORIGIN : ALLOWED_ORIGIN;
