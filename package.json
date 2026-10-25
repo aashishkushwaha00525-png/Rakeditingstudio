@@ -1,0 +1,13 @@
+{
+  "name": "rak-ai-worker",
+  "private": true,
+  "version": "1.0.0",
+  "description": "RAK AI Cloudflare Worker",
+  "scripts": {
+    "build": "node --check cloudflare-worker.js",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
