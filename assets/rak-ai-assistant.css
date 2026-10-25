@@ -1,0 +1,23 @@
+#rak-float-launcher{position:fixed;right:18px;bottom:18px;z-index:99990;width:62px;height:62px;border:1px solid #f0c96b;border-radius:50%;background:radial-gradient(circle at 35% 25%,#493510,#080808 68%);color:#ffd979;box-shadow:0 0 0 4px #d8a83b22,0 0 25px #d8a83b66;display:grid;place-items:center;font:bold 18px Georgia,serif;cursor:pointer;animation:rakGlow 2.4s infinite}
+#rak-float-launcher:before{content:"";position:absolute;inset:-7px;border:1px solid #e6bd5c88;border-radius:50%;animation:rakRing 2.4s infinite}
+#rak-float-panel{position:fixed;right:14px;bottom:92px;z-index:99991;width:min(370px,calc(100vw - 24px));height:min(570px,calc(100dvh - 120px));background:#101010;color:#f8f3e8;border:1px solid #b68b35;border-radius:18px;box-shadow:0 15px 55px #000b;display:none;overflow:hidden;font:14px/1.45 system-ui,sans-serif}
+#rak-float-panel.rak-open{display:flex;flex-direction:column}
+#rak-float-panel *{box-sizing:border-box}
+.rak-head{display:flex;align-items:center;gap:10px;padding:13px;background:linear-gradient(120deg,#211908,#101010);border-bottom:1px solid #493919}
+.rak-avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#ffd879;background:#080808;border:1px solid #d6a840;font-weight:800;box-shadow:0 0 14px #c89a3d55}
+.rak-headinfo{flex:1}.rak-headinfo strong{display:block;color:#ffe0a0;font-size:15px}.rak-status{font-size:11px;color:#b8b1a1}
+.rak-head button{border:0;background:#2a251b;color:#f8dc9a;border-radius:9px;padding:7px 9px;cursor:pointer}
+.rak-messages{padding:12px;overflow:auto;flex:1;display:flex;flex-direction:column;gap:9px}
+.rak-msg{padding:10px 12px;border-radius:13px;max-width:92%;white-space:pre-wrap;overflow-wrap:anywhere}
+.rak-bot{align-self:flex-start;background:#24221d;border:1px solid #3d3525}.rak-user{align-self:flex-end;background:#75551b;color:white}
+.rak-quick{display:flex;flex-wrap:wrap;gap:6px;padding:0 11px 10px}
+.rak-quick button,.rak-tools button{border:1px solid #765a24;background:#19160f;color:#f5d88c;border-radius:999px;padding:7px 9px;font-size:11px;cursor:pointer}
+.rak-inputrow{display:flex;gap:6px;padding:10px;border-top:1px solid #3d3320}
+.rak-inputrow input{min-width:0;flex:1;background:#080808;color:white;border:1px solid #554323;border-radius:10px;padding:11px}
+.rak-inputrow button{background:#d6aa4a;color:#171109;border:0;border-radius:10px;padding:0 13px;font-weight:700}
+.rak-tools{display:flex;gap:6px;padding:0 10px 10px}.rak-tools button{flex:1;border-radius:10px}
+#rak-float-panel button:disabled{opacity:.55}
+@keyframes rakGlow{50%{box-shadow:0 0 0 7px #d8a83b12,0 0 30px #d8a83b99}}
+@keyframes rakRing{0%{transform:scale(.94);opacity:.7}100%{transform:scale(1.22);opacity:0}}
+@media(max-width:480px){#rak-float-launcher{right:14px;bottom:14px;width:56px;height:56px}#rak-float-panel{right:8px;bottom:78px;width:calc(100vw - 16px);height:min(600px,calc(100dvh - 95px))}}
+@media(prefers-reduced-motion:reduce){#rak-float-launcher,#rak-float-launcher:before{animation:none}}
