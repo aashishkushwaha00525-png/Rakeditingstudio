@@ -10,19 +10,242 @@
 </head>
 <body><main class="wrap">
 <header class="top"><a class="back" href="app.html">← RAK AI</a><div><div class="brand">RAK <span class="gold">AI</span> VOICE</div><div class="sub">Royal Aashish King · Voice Studio</div></div></header>
-<section class="hero"><div class="orb" id="orb"><span>🎙️</span></div><div class="sub">HANDS-FREE VOICE ASSISTANT</div><h1>Talk naturally.<br><span class="gold">Hear the answer.</span></h1><p class="hint">Hindi · Hinglish · English</p></section>
-<section class="card"><div class="status" id="status" role="status">Ready — Start Voice Chat dabao.</div><div class="controls"><button class="btn" id="start">🎙️ Start Voice Chat</button><button class="btn secondary" id="stop" disabled>■ End Chat</button></div><label class="toggle"><input type="checkbox" id="handsfree" checked> AI ke jawab ke baad dobara sunna shuru kare</label><label class="toggle"><input type="checkbox" id="speak" checked> AI ka jawab awaaz mein sunaye</label><label class="hint" for="lang">Voice language</label><select id="lang"><option value="hi-IN">Hindi (India)</option><option value="en-IN">English (India)</option><option value="en-US">English (US)</option></select><p class="note">Pehli baar microphone permission allow karna hoga. Browser speech recognition ki availability browser/device par depend karti hai.</p></section>
-<section class="card"><strong>What I heard</strong><p class="transcript" id="heard">Tumhari awaaz ka text yahan dikhega.</p><strong>RAK AI replied</strong><p class="transcript" id="reply">AI ka jawab yahan dikhega.</p><p class="note">Voice request tumhare existing RAK AI Worker ko bheji jaati hai. Mic ko kabhi bhi End Chat se band kar sakte ho.</p></section>
+<section class="hero"><div class="orb" id="orb"><span>🎙️</span></div><div class="sub">REAL-TIME AI CALL</div><h1>Talk to RAK AI.<br><span class="gold">Like a real call.</span></h1><p class="hint">Hindi · Hinglish · English</p></section>
+<section class="card">
+<div class="status" id="status" role="status">Ready — Start Call dabao.</div>
+<div class="controls"><button class="btn" id="start">📞 Start Call</button><button class="btn secondary" id="stop" disabled>🔴 End Call</button></div>
+<label class="hint" for="lang">Conversation language</label>
+<select id="lang"><option value="hi-IN">Hindi / Hinglish</option><option value="en-IN">English (India)</option><option value="en-US">English (US)</option></select>
+<p class="note">Real-time audio conversation. First time microphone permission allow karna hoga. Free-tier limits apply; passwords, OTPs ya private information voice mein share na karein.</p>
+</section>
+<section class="card"><strong>What I heard</strong><p class="transcript" id="heard">Tumhari awaaz ka text yahan dikhega.</p><strong>RAK AI replied</strong><p class="transcript" id="reply">AI ka jawab yahan dikhega.</p><p class="note">Live audio is sent to Gemini Live for processing. End Call dabakar microphone aur connection band kar sakte ho.</p></section>
 <section class="card"><strong>Typing bhi kar sakte ho</strong><textarea id="typed" rows="3" placeholder="Yahan sawaal likho…" style="width:100%;margin-top:9px;padding:12px;border-radius:12px;background:#0b0a08;color:#fff;border:1px solid #544326;font:inherit"></textarea><button class="btn wide" id="sendTyped">Send & Speak Reply</button></section>
 </main>
-<script>
-(()=>{const API='https://rak-ai.royalaashishking.workers.dev/api/chat';const SR=window.SpeechRecognition||window.webkitSpeechRecognition;const $=id=>document.getElementById(id);let recognition=null,active=false,listening=false,busy=false,history=[],restartTimer=null;
-function status(t){$('status').textContent=t}
-function setActive(v){active=v;$('start').disabled=v;$('stop').disabled=!v;$('orb').classList.toggle('active',v)}
-function stopRecognition(){if(recognition){try{recognition.onend=null;recognition.stop()}catch(e){}recognition=null}listening=false}
-function speak(text){return new Promise(resolve=>{if(!$('speak').checked||!('speechSynthesis'in window)){resolve();return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=$('lang').value;u.rate=1;u.onend=resolve;u.onerror=resolve;speechSynthesis.speak(u)})}
-function listen(){if(!active||busy||listening)return;if(!SR){status('Is browser mein voice recognition supported nahi hai. Chrome mein try karo ya neeche type karo.');setActive(false);return}stopRecognition();recognition=new SR();recognition.lang=$('lang').value;recognition.continuous=false;recognition.interimResults=true;let finalText='';recognition.onstart=()=>{listening=true;status('Sun raha hoon… ab bolo.');$('orb').classList.add('active')};recognition.onresult=e=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)finalText+=t;else interim+=t}$('heard').textContent=(finalText+' '+interim).trim()||'Sun raha hoon…';if(finalText.trim()&&!busy){const q=finalText.trim();finalText='';stopRecognition();ask(q)}};recognition.onerror=e=>{listening=false;if(e.error==='not-allowed'){status('Mic permission nahi mili. Browser settings mein microphone allow karo.');setActive(false)}else if(e.error!=='no-speech'&&active)status('Voice error: '+e.error+'. Dobara bolne ki koshish karo.');};recognition.onend=()=>{listening=false;if(active&&!busy&&$('handsfree').checked){clearTimeout(restartTimer);restartTimer=setTimeout(listen,500)}else if(active&&!busy)status('Bolo ya mic dobara start karo.')};try{recognition.start()}catch(e){listening=false;status('Mic start nahi hua. Dobara try karo.')}}
-async function ask(q){if(!q||busy)return;busy=true;status('RAK AI jawab bana raha hai…');$('heard').textContent=q;try{const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:q,history:history.slice(-8)})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Worker/API error');const answer=String(data.reply||'Abhi jawab nahi mila.');$('reply').textContent=answer;history.push({role:'user',text:q},{role:'assistant',text:answer});await speak(answer);status(active?'Jawab complete. '+($('handsfree').checked?'Agla sawaal bolo.':'Ready.'):'Reply complete.');}catch(e){$('reply').textContent='RAK AI se connect nahi ho paaya: '+e.message;status('Connection problem — Worker/API check karo.')}finally{busy=false;if(active&&$('handsfree').checked){clearTimeout(restartTimer);restartTimer=setTimeout(listen,450)}}}
-$('start').onclick=()=>{if(!SR){status('Is browser mein voice recognition supported nahi hai. Chrome mein try karo; typing mode bhi available hai.');return}setActive(true);listen()};$('stop').onclick=()=>{setActive(false);stopRecognition();clearTimeout(restartTimer);if('speechSynthesis'in window)speechSynthesis.cancel();status('Voice chat band hai.')};$('sendTyped').onclick=()=>{const q=$('typed').value.trim();if(!q)return;$('typed').value='';if(!active)setActive(true);ask(q)};$('lang').onchange=()=>{if(active&&!busy){stopRecognition();listen()}};window.addEventListener('pagehide',()=>{setActive(false);stopRecognition();if('speechSynthesis'in window)speechSynthesis.cancel()});if(!SR)status('Voice recognition support nahi mila. Typing + spoken reply try kar sakte ho.');
-})();
+<script type="module">
+import { GoogleGenAI } from "https://esm.sh/@google/genai?bundle";
+
+const TOKEN_API = "https://rak-ai.royalaashishking.workers.dev/api/live-token";
+const $ = (id) => document.getElementById(id);
+let session = null, active = false, stream = null, audioContext = null;
+let micSource = null, processor = null, muteGain = null, playbackTime = 0;
+const playingSources = new Set();
+
+function status(text) { $("status").textContent = text; }
+function setActive(value) {
+  active = value;
+  $("start").disabled = value;
+  $("stop").disabled = !value;
+  $("orb").classList.toggle("active", value);
+  $("orb").querySelector("span").textContent = value ? "📞" : "🎙️";
+}
+function config() {
+  const language = $("lang").value;
+  const languageRule = language === "hi-IN"
+    ? "Speak naturally in Hindi or Hinglish, matching the user's language. Prefer Hindi when the user speaks Hindi. Sound warm, clear, conversational, and concise."
+    : language === "en-IN"
+      ? "Speak naturally in Indian English, and switch to Hindi or Hinglish if the user does."
+      : "Speak naturally in English, and switch to Hindi or Hinglish if the user does.";
+  return {
+    responseModalities: ["AUDIO"],
+    speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } },
+    inputAudioTranscription: {},
+    outputAudioTranscription: {},
+    systemInstruction: { parts: [{ text:
+      "You are RAK AI, the voice assistant for RAK Editing Studio by Royal Aashish King. " +
+      languageRule +
+      " This is a live phone-call-style conversation. Answer promptly, avoid long lists unless asked, and let the user interrupt you naturally. " +
+      "Help with editing, creator tools, AI prompts, and general questions. Never claim you performed an action you did not perform. " +
+      "Never ask for passwords, OTPs, API keys, or bank details."
+    }] }
+  };
+}
+function bytesToBase64(bytes) {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+function resamplePcm16(input, inputRate, targetRate = 16000) {
+  const ratio = inputRate / targetRate;
+  const length = Math.floor(input.length / ratio);
+  if (!length) return null;
+  const bytes = new Uint8Array(length * 2);
+  const view = new DataView(bytes.buffer);
+  for (let i = 0; i < length; i++) {
+    const pos = i * ratio;
+    const left = Math.floor(pos);
+    const fraction = pos - left;
+    const a = input[left] || 0;
+    const b = input[Math.min(left + 1, input.length - 1)] || 0;
+    const sample = Math.max(-1, Math.min(1, a + (b - a) * fraction));
+    view.setInt16(i * 2, sample < 0 ? sample * 32768 : sample * 32767, true);
+  }
+  return bytes;
+}
+function stopPlayback() {
+  for (const source of playingSources) {
+    try { source.stop(); } catch {}
+    try { source.disconnect(); } catch {}
+  }
+  playingSources.clear();
+  if (audioContext) playbackTime = audioContext.currentTime;
+}
+function playPcm(base64) {
+  if (!audioContext || !base64) return;
+  try {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const count = Math.floor(bytes.length / 2);
+    if (!count) return;
+    const view = new DataView(bytes.buffer);
+    const buffer = audioContext.createBuffer(1, count, 24000);
+    const channel = buffer.getChannelData(0);
+    for (let i = 0; i < count; i++) channel[i] = view.getInt16(i * 2, true) / 32768;
+    const source = audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioContext.destination);
+    playingSources.add(source);
+    source.onended = () => { playingSources.delete(source); try { source.disconnect(); } catch {} };
+    playbackTime = Math.max(playbackTime, audioContext.currentTime + 0.025);
+    source.start(playbackTime);
+    playbackTime += buffer.duration;
+  } catch (error) {
+    console.warn("Audio playback error", error);
+  }
+}
+function handleMessage(message) {
+  const content = message?.serverContent;
+  if (!content) return;
+  if (content.interrupted) {
+    stopPlayback();
+    status("Tum bol rahe ho — RAK AI sun raha hai.");
+  }
+  if (content.inputTranscription?.text) {
+    const heard = $("heard");
+    if (heard.textContent === "Tumhari awaaz ka text yahan dikhega.") heard.textContent = "";
+    heard.textContent += content.inputTranscription.text;
+  }
+  if (content.outputTranscription?.text) {
+    const reply = $("reply");
+    if (reply.textContent === "AI ka jawab yahan dikhega.") reply.textContent = "";
+    reply.textContent += content.outputTranscription.text;
+  }
+  for (const part of content.modelTurn?.parts || []) {
+    if (part.inlineData?.data) playPcm(part.inlineData.data);
+    if (part.text) $("reply").textContent = part.text;
+  }
+  if (content.turnComplete) status("Call connected — bolo, main sun raha hoon.");
+}
+function setupMicrophone() {
+  micSource = audioContext.createMediaStreamSource(stream);
+  processor = audioContext.createScriptProcessor(4096, 1, 1);
+  muteGain = audioContext.createGain();
+  muteGain.gain.value = 0;
+  processor.onaudioprocess = (event) => {
+    if (!active || !session) return;
+    const pcm = resamplePcm16(event.inputBuffer.getChannelData(0), audioContext.sampleRate);
+    if (!pcm) return;
+    try {
+      session.sendRealtimeInput({ audio: { data: bytesToBase64(pcm), mimeType: "audio/pcm;rate=16000" } });
+    } catch (error) {
+      console.warn("Could not send microphone audio", error);
+    }
+  };
+  micSource.connect(processor);
+  processor.connect(muteGain);
+  muteGain.connect(audioContext.destination);
+}
+async function startCall() {
+  if (active) return true;
+  if (!navigator.mediaDevices?.getUserMedia) {
+    status("Is browser mein microphone streaming supported nahi hai. Updated Chrome/Firefox try karo.");
+    return false;
+  }
+  try {
+    status("Microphone permission maang raha hoon…");
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+    });
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) throw new Error("Is browser mein audio processing supported nahi hai.");
+    audioContext = new AudioCtx();
+    await audioContext.resume();
+    status("RAK AI se secure live connection bana raha hoon…");
+    const tokenResponse = await fetch(TOKEN_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}"
+    });
+    const tokenData = await tokenResponse.json();
+    if (!tokenResponse.ok || !tokenData.token) throw new Error(tokenData.error || "Live token nahi mila.");
+    const ai = new GoogleGenAI({
+      apiKey: tokenData.token,
+      httpOptions: { apiVersion: "v1beta" }
+    });
+    session = await ai.live.connect({
+      model: tokenData.model || "gemini-3.8-live",
+      config: config(),
+      callbacks: {
+        onopen: () => status("Call connected — bolo, main sun raha hoon."),
+        onmessage: handleMessage,
+        onerror: (error) => status("Live connection error: " + (error?.message || "dobara try karo")),
+        onclose: (event) => {
+          if (active) status("Call disconnect ho gayi. Dobara Start Call dabao.");
+          console.debug("RAK AI Live closed", event?.reason || "");
+        }
+      }
+    });
+    setActive(true);
+    setupMicrophone();
+    $("heard").textContent = "Tumhari awaaz ka text yahan dikhega.";
+    $("reply").textContent = "RAK AI ko sun raha hoon…";
+    status("Call connected — bolo, main sun raha hoon.");
+    return true;
+  } catch (error) {
+    await cleanup();
+    status("Call connect nahi hui: " + (error?.message || "network ya Live API access check karo."));
+    return false;
+  }
+}
+async function cleanup() {
+  setActive(false);
+  if (session) { try { session.close(); } catch {} session = null; }
+  stopPlayback();
+  if (processor) { try { processor.disconnect(); } catch {} processor.onaudioprocess = null; processor = null; }
+  if (micSource) { try { micSource.disconnect(); } catch {} micSource = null; }
+  if (muteGain) { try { muteGain.disconnect(); } catch {} muteGain = null; }
+  if (stream) { for (const track of stream.getTracks()) track.stop(); stream = null; }
+  if (audioContext) { const ctx = audioContext; audioContext = null; try { await ctx.close(); } catch {} }
+  playbackTime = 0;
+}
+$("start").addEventListener("click", startCall);
+$("stop").addEventListener("click", async () => {
+  await cleanup();
+  status("Call ended. Dobara baat karne ke liye Start Call dabao.");
+});
+$("sendTyped").addEventListener("click", async () => {
+  const question = $("typed").value.trim();
+  if (!question) return;
+  if (!session || !active) {
+    const connected = await startCall();
+    if (!connected) return;
+  }
+  $("typed").value = "";
+  $("heard").textContent = question;
+  $("reply").textContent = "";
+  status("RAK AI jawab de raha hai…");
+  try { session.sendRealtimeInput({ text: question }); }
+  catch (error) { status("Message send nahi hua: " + (error?.message || "dobara try karo")); }
+});
+$("typed").addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    $("sendTyped").click();
+  }
+});
+window.addEventListener("pagehide", () => { void cleanup(); });
+if (!navigator.mediaDevices?.getUserMedia) status("Microphone streaming available nahi. Updated browser try karo.");
 </script></body></html>
