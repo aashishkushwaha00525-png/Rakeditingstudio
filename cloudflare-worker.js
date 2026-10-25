@@ -12,21 +12,25 @@ function cors(origin) {
 }
 
 
-async function retryTransient(fetcher, models = [MODEL, "gemini-3.6-flash", "gemini-3.5-flash"]) {
-  const transient = [429, 500, 502, 503, 504];
+async function retryTransient(fetcher, models = [MODEL, "gemini-3.6-flash", "gemini-3.5-flash-lite"]) {
+  // Move to a supported fallback if the selected model rejects the request or is unavailable.
+  const tryFallback = [400, 404, 429, 500, 502, 503, 504];
   let response;
   for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
-    // Retry each model briefly, then try the next supported fallback model.
-    for (let attempt = 0; attempt < 2; attempt++) {
+    response = await fetcher(models[modelIndex]);
+    if (response.ok) return response;
+    if (!tryFallback.includes(response.status)) return response;
+
+    // Only one short retry for temporary capacity/rate-limit errors, to avoid long waits.
+    if ([429, 500, 502, 503, 504].includes(response.status) && modelIndex === 0) {
+      const retryAfter = Number(response.headers.get("Retry-After"));
+      const delayMs = Number.isFinite(retryAfter) && retryAfter > 0
+        ? Math.min(retryAfter * 1000, 1000)
+        : 250;
+      await new Promise(resolve => setTimeout(resolve, delayMs));
       response = await fetcher(models[modelIndex]);
-      if (!transient.includes(response.status)) return response;
-      if (attempt === 0) {
-        const retryAfter = Number(response.headers.get("Retry-After"));
-        const delayMs = Number.isFinite(retryAfter) && retryAfter > 0
-          ? Math.min(retryAfter * 1000, 2000)
-          : 350;
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-      }
+      if (response.ok) return response;
+      if (![400, 404, 429, 500, 502, 503, 504].includes(response.status)) return response;
     }
   }
   return response;
@@ -213,7 +217,7 @@ RAK EDITING STUDIO WEBSITE KNOWLEDGE:
             generationConfig: { temperature: 0.7, maxOutputTokens: 700 }
           })
         }
-      ), [MODEL, "gemini-3.6-flash", "gemini-3.5-flash"]);
+      ), [MODEL, "gemini-3.6-flash", "gemini-3.5-flash-lite"]);
       const data = await upstream.json();
       if (!upstream.ok) {
         const upstreamMessage = data?.error?.message || "No error details returned";
