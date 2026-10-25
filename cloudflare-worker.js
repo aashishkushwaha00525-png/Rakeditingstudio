@@ -78,6 +78,42 @@ export default {
     if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, origin);
     if (!env.GEMINI_API_KEY) return json({ error: "Server API key is not configured" }, 503, origin);
 
+    if (url.pathname === "/api/live-token") {
+      if (origin !== ALLOWED_ORIGIN) return json({ error: "Origin not allowed" }, 403, origin);
+      const now = Date.now();
+      try {
+        const upstream = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": env.GEMINI_API_KEY
+          },
+          body: JSON.stringify({
+            uses: 1,
+            expireTime: new Date(now + 30 * 60 * 1000).toISOString(),
+            newSessionExpireTime: new Date(now + 60 * 1000).toISOString(),
+            liveConnectConstraints: {
+              model: "models/gemini-3.8-live",
+              config: { responseModalities: ["AUDIO"] }
+            }
+          })
+        });
+        const data = await upstream.json();
+        if (!upstream.ok || !data.name) {
+          const message = data?.error?.message || "Could not create a live voice session.";
+          const safe = upstream.status === 401 || upstream.status === 403
+            ? "Gemini API authorization failed. Check the existing API key and Live API access."
+            : upstream.status === 429
+              ? "Gemini Live free quota or rate limit reached. Try again later."
+              : "Gemini Live token request failed (" + upstream.status + "): " + message.slice(0, 180);
+          return json({ error: safe }, 502, origin);
+        }
+        return json({ token: data.name, model: "gemini-3.8-live" }, 200, origin);
+      } catch {
+        return json({ error: "Could not reach Gemini Live. Try again later." }, 502, origin);
+      }
+    }
+
     let body;
     try { body = await request.json(); } catch { return json({ error: "Invalid JSON request" }, 400, origin); }
 
