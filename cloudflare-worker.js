@@ -12,19 +12,22 @@ function cors(origin) {
 }
 
 
-async function retryTransient(fetcher, attempts = 3) {
+async function retryTransient(fetcher, models = [MODEL, "gemini-3.6-flash", "gemini-3.5-flash"]) {
+  const transient = [429, 500, 502, 503, 504];
   let response;
-  for (let attempt = 0; attempt < attempts; attempt++) {
-    response = await fetcher();
-    if (![429, 500, 502, 503, 504].includes(response.status) || attempt === attempts - 1) {
-      return response;
+  for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
+    // Retry each model briefly, then try the next supported fallback model.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      response = await fetcher(models[modelIndex]);
+      if (!transient.includes(response.status)) return response;
+      if (attempt === 0) {
+        const retryAfter = Number(response.headers.get("Retry-After"));
+        const delayMs = Number.isFinite(retryAfter) && retryAfter > 0
+          ? Math.min(retryAfter * 1000, 2000)
+          : 350;
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
     }
-    // Short backoff for temporary provider overload/rate limits.
-    const retryAfter = Number(response.headers.get("Retry-After"));
-    const delayMs = Number.isFinite(retryAfter) && retryAfter > 0
-      ? Math.min(retryAfter * 1000, 2500)
-      : 400 * (attempt + 1);
-    await new Promise(resolve => setTimeout(resolve, delayMs));
   }
   return response;
 }
@@ -184,8 +187,8 @@ export default {
     }
 
     try {
-      const upstream = await retryTransient(() => fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(env.GEMINI_API_KEY)}`,
+      const upstream = await retryTransient((model) => fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(env.GEMINI_API_KEY)}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -210,7 +213,7 @@ RAK EDITING STUDIO WEBSITE KNOWLEDGE:
             generationConfig: { temperature: 0.7, maxOutputTokens: 700 }
           })
         }
-      ));
+      ), [MODEL, "gemini-3.6-flash", "gemini-3.5-flash"]);
       const data = await upstream.json();
       if (!upstream.ok) {
         const upstreamMessage = data?.error?.message || "No error details returned";
