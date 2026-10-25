@@ -82,7 +82,7 @@ export default {
       if (origin !== ALLOWED_ORIGIN) return json({ error: "Origin not allowed" }, 403, origin);
       const now = Date.now();
       try {
-        const upstream = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
+        const upstream = await fetch("https://generativelanguage.googleapis.com/v1alpha/auth_tokens", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -92,9 +92,11 @@ export default {
             uses: 1,
             expireTime: new Date(now + 30 * 60 * 1000).toISOString(),
             newSessionExpireTime: new Date(now + 60 * 1000).toISOString(),
-            bidiGenerateContentSetup: {
-              model: "models/gemini-3.8-live",
-              generationConfig: { responseModalities: ["AUDIO"] }
+            config: {
+              liveConnectConstraints: {
+                model: "models/gemini-3.8-live",
+                config: { sessionResumption: {}, responseModalities: ["AUDIO"] }
+              }
             }
           })
         });
