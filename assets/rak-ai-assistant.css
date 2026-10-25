@@ -37,3 +37,10 @@
 #rak-call-status{min-height:24px}
 @keyframes rakGlow{0%,100%{box-shadow:0 0 0 8px #e7b34d0b,0 0 28px #d99b2b22;transform:scale(1)}50%{box-shadow:0 0 0 18px #e7b34d0a,0 0 58px #d99b2b66;transform:scale(1.035)}}
 @media(max-width:480px){#rak-float-panel{right:8px;bottom:78px;width:calc(100vw - 16px)}.rak-call-center h2{font-size:26px}.rak-call-transcript{font-size:14px}}
+
+/* RAK AI floating website launcher: premium headset/support icon */
+#rak-float-launcher{padding:0;overflow:visible}
+#rak-float-launcher .rak-launcher-mark{width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative}
+#rak-float-launcher .rak-launcher-mark svg{width:43px;height:43px;display:block;filter:drop-shadow(0 1px 4px #ffd97966)}
+#rak-float-launcher .rak-launcher-mark b{position:absolute;bottom:7px;left:0;right:0;text-align:center;font:bold 9px/1 system-ui,sans-serif;letter-spacing:1.4px;color:#fff0bd;text-shadow:0 1px 3px #000;background:#080808cc;width:max-content;margin:auto;padding:2px 4px;border-radius:4px}
+@media(max-width:480px){#rak-float-launcher .rak-launcher-mark svg{width:40px;height:40px}}
