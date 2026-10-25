@@ -86,4 +86,5 @@ async function copy(t){try{await navigator.clipboard.writeText(t)}catch(e){const
 document.getElementById('copyPhoto').onclick=()=>copy(photoText);document.getElementById('copyVideo').onclick=()=>copy(videoText);
 let installPrompt;const installBtn=document.getElementById('installBtn');window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;installBtn.hidden=false});installBtn.onclick=async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;installBtn.hidden=true};
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('app-sw.js').catch(()=>{}));
-</script></body></html>
+</script><script src="assets/rak-ai-assistant.js" defer></script>
+</body></html>
