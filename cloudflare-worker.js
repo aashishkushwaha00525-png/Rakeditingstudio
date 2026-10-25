@@ -13,16 +13,17 @@ function cors(origin) {
 
 
 async function retryTransient(fetcher, models = [MODEL, "gemini-3.6-flash", "gemini-3.5-flash-lite"]) {
-  // Move to a supported fallback if the selected model rejects the request or is unavailable.
-  const tryFallback = [400, 404, 429, 500, 502, 503, 504];
+  // Try each model in order. Only retry temporary capacity/rate-limit errors once.
+  const fallbackStatuses = [400, 404, 429, 500, 502, 503, 504];
+  const transientStatuses = [429, 500, 502, 503, 504];
   let response;
+
   for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
     response = await fetcher(models[modelIndex]);
     if (response.ok) return response;
-    if (!tryFallback.includes(response.status)) return response;
+    if (!fallbackStatuses.includes(response.status)) return response;
 
-    // Only one short retry for temporary capacity/rate-limit errors, to avoid long waits.
-    if ([429, 500, 502, 503, 504].includes(response.status) && modelIndex === 0) {
+    if (transientStatuses.includes(response.status) && modelIndex === 0) {
       const retryAfter = Number(response.headers.get("Retry-After"));
       const delayMs = Number.isFinite(retryAfter) && retryAfter > 0
         ? Math.min(retryAfter * 1000, 1000)
@@ -30,9 +31,10 @@ async function retryTransient(fetcher, models = [MODEL, "gemini-3.6-flash", "gem
       await new Promise(resolve => setTimeout(resolve, delayMs));
       response = await fetcher(models[modelIndex]);
       if (response.ok) return response;
-      if (![400, 404, 429, 500, 502, 503, 504].includes(response.status)) return response;
+      if (!fallbackStatuses.includes(response.status)) return response;
     }
   }
+
   return response;
 }
 
