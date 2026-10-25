@@ -82,7 +82,7 @@ export default {
       if (origin !== ALLOWED_ORIGIN) return json({ error: "Origin not allowed" }, 403, origin);
       const now = Date.now();
       try {
-        const upstream = await fetch("https://generativelanguage.googleapis.com/v1alpha/auth_tokens", {
+        const upstream = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
