@@ -163,7 +163,21 @@ if(durgaCopyButton){durgaCopyButton.addEventListener('click',async()=>{const tex
 const rakCaptionCopy=document.getElementById('copyRakCaptionPrompt');if(rakCaptionCopy){rakCaptionCopy.addEventListener('click',async()=>{const value=document.getElementById('rakCaptionPrompt').innerText;const status=document.getElementById('rakCaptionStatus');try{await navigator.clipboard.writeText(value);status.textContent='Copied! Paste it into your AI tool and replace [TOPIC].'}catch(e){status.textContent='Select the prompt text and copy it manually.'}});}
 el('year').textContent=new Date().getFullYear();render();
 </script>
-<script type="module" src="account.js?v=20261101-profile-fix"></script>
+<script>
+(function () {
+  const button = document.getElementById("googleSignInBtn");
+  if (!button) return;
+  button.addEventListener("click", function () {
+    if (window.rakGoogleAuthReady) return;
+    const authUrl = new URL("https://fhfjiqmewnnafotuvrcj.supabase.co/auth/v1/authorize");
+    authUrl.searchParams.set("provider", "google");
+    authUrl.searchParams.set("redirect_to", window.location.origin + window.location.pathname);
+    authUrl.searchParams.set("query_params", JSON.stringify({ prompt: "select_account" }));
+    window.location.assign(authUrl.toString());
+  });
+})();
+</script>
+<script type="module" src="account.js?v=20261101-login-fallback"></script>
 <script src="assets/rak-ai-assistant.js?v=20261025-icon2" defer></script>
 </body>
 </html>
