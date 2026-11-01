@@ -2,35 +2,41 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "./supabase-config.js";
 
 const byId = (id) => document.getElementById(id);
-const signedOut = byId("googleAuthSignedOut");
-const signedIn = byId("googleAuthSignedIn");
-const status = byId("googleAuthStatus");
 const signInButton = byId("googleSignInBtn");
+const profileDetails = byId("profileDetails");
+const status = byId("googleAuthStatus");
 const signOutButton = byId("googleSignOutBtn");
 
-function setStatus(text, isError = false) {
-  status.textContent = text;
-  status.style.color = isError ? "#ff9b9b" : "";
+function setStatus(message, isError = false) {
+  if (!status) return;
+  status.textContent = message;
+  status.dataset.error = isError ? "true" : "false";
 }
+
 function showUser(user) {
-  const isSignedIn = !!user;
-  signedOut.classList.toggle("hidden", isSignedIn);
-  signedIn.classList.toggle("hidden", !isSignedIn);
-  if (!user) {
+  const signedIn = Boolean(user);
+  signInButton.classList.toggle("hidden", signedIn);
+  profileDetails.classList.toggle("hidden", !signedIn);
+  if (!signedIn) {
     byId("googleUserName").textContent = "";
     byId("googleUserEmail").textContent = "";
     byId("googleUserAvatar").removeAttribute("src");
+    profileDetails.open = false;
+    signInButton.setAttribute("aria-label", "Sign in with Google");
+    signInButton.title = "Sign in with Google";
     return;
   }
   const meta = user.user_metadata || {};
-  byId("googleUserName").textContent = meta.full_name || meta.name || user.email || "Google user";
+  byId("googleUserName").textContent = meta.full_name || meta.name || "Google user";
   byId("googleUserEmail").textContent = user.email || "";
   const avatar = meta.avatar_url || meta.picture || "";
-  if (avatar && /^https:\/\//i.test(avatar)) byId("googleUserAvatar").src = avatar;
-  else byId("googleUserAvatar").removeAttribute("src");
+  const image = byId("googleUserAvatar");
+  if (avatar && /^https:\/\//i.test(avatar)) image.src = avatar;
+  else image.removeAttribute("src");
 }
 
-const configured = /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(SUPABASE_URL) &&
+const configured =
+  /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(SUPABASE_URL) &&
   typeof SUPABASE_PUBLISHABLE_KEY === "string" &&
   SUPABASE_PUBLISHABLE_KEY.startsWith("sb_publishable_");
 
@@ -50,7 +56,6 @@ if (!configured) {
     showUser(session?.user || null);
     if (event === "SIGNED_IN") setStatus("Google account connected successfully.");
     if (event === "SIGNED_OUT") setStatus("You have been signed out.");
-    if (event === "TOKEN_REFRESHED") setStatus("Your Google sign-in session is active.");
   });
 
   signInButton.addEventListener("click", async () => {
