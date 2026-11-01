@@ -54,6 +54,7 @@ if (!signInButton || !profileDetails || !signOutButton) {
       });
 
       // Attach click handlers before checking the saved session so the button is responsive immediately.
+      window.rakGoogleAuthReady = true;
       signInButton.addEventListener("click", async () => {
         signInButton.disabled = true;
         setStatus("Opening Google sign-in…");
