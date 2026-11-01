@@ -28,7 +28,7 @@ function showUser(user) {
     return;
   }
   const meta = user.user_metadata || {};
-  byId("googleUserName").textContent = meta.full_name || meta.name || "Google user";
+  byId("googleUserName").textContent = "RAK Editing Studio";
   byId("googleUserEmail").textContent = user.email || "";
   const avatar = meta.avatar_url || meta.picture || "";
   const image = byId("googleUserAvatar");
