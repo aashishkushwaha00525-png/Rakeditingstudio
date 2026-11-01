@@ -54,8 +54,8 @@ async function readAttachments(input) {
     }
     const bytes = decodeBase64(base64);
     totalBytes += bytes.byteLength;
-    if (bytes.byteLength > 4 * 1024 * 1024 || totalBytes > 4 * 1024 * 1024) {
-      throw new Error("Attachments must total 4 MB or less.");
+    if (bytes.byteLength > 12 * 1024 * 1024 || totalBytes > 12 * 1024 * 1024) {
+      throw new Error("Attachments must total 12 MB or less (maximum 12 MB per file).");
     }
     const name = typeof item.name === "string" ? item.name.slice(0, 120) : "attached file";
     if (mimeType === "text/plain" || mimeType === "text/csv") {
