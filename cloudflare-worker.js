@@ -13,28 +13,13 @@ function cors(origin) {
 
 
 async function retryTransient(fetcher, models = [MODEL, "gemini-3.6-flash", "gemini-3.5-flash-lite"]) {
-  // Try each model in order. Retry only temporary errors once on the primary model.
-  const fallbackStatuses = [400, 404, 429, 500, 502, 503, 504];
-  const transientStatuses = [429, 500, 502, 503, 504];
+  // Fail over immediately; do not wait and repeat a slow primary request.
   let response;
-
-  for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
-    response = await fetcher(models[modelIndex]);
+  for (const model of models) {
+    response = await fetcher(model);
     if (response.ok) return response;
-    if (!fallbackStatuses.includes(response.status)) return response;
-
-    if (transientStatuses.includes(response.status) && modelIndex === 0) {
-      const retryAfter = Number(response.headers.get("Retry-After"));
-      const delayMs = Number.isFinite(retryAfter) && retryAfter > 0
-        ? Math.min(retryAfter * 1000, 1000)
-        : 250;
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-      response = await fetcher(models[modelIndex]);
-      if (response.ok) return response;
-      if (!fallbackStatuses.includes(response.status)) return response;
-    }
+    if (![400, 404, 429, 500, 502, 503, 504].includes(response.status)) return response;
   }
-
   return response;
 }
 
@@ -175,7 +160,7 @@ export default {
     }
 
     const systemContext = typeof body.systemContext === "string" ? body.systemContext.slice(0, 1800) : "";
-    const history = Array.isArray(body.history) ? body.history.slice(-8) : [];
+    const history = Array.isArray(body.history) ? body.history.slice(-4) : [];
     const contents = [];
     for (const item of history) {
       if (!item || typeof item.text !== "string") continue;
@@ -216,7 +201,7 @@ RAK EDITING STUDIO WEBSITE KNOWLEDGE:
 - Protect privacy: never request passwords, API keys, OTPs, bank/card details, or other secrets.` }]
             },
             contents,
-            generationConfig: { maxOutputTokens: 4096 }
+            generationConfig: { maxOutputTokens: 1024 }
           })
         }
       ), [MODEL, "gemini-3.6-flash", "gemini-3.5-flash-lite"]);
